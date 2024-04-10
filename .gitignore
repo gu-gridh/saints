@@ -1,0 +1,9 @@
+# Environments
+venv
+.env
+
+# Django
+*.log
+*.pyc
+__pychache__
+db.sqlite3

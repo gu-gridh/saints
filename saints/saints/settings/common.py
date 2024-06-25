@@ -11,7 +11,11 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 import os
+from dotenv import load_dotenv
 from pathlib import Path
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,17 +25,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework',
+    # 'formset',
+    'ckeditor',
+    'django_filters',
     'explore.apps.ExploreConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -39,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # some WYSIWYG editor: django-prose?
+    'django.contrib.gis',
 ]
 
 MIDDLEWARE = [
@@ -71,17 +73,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'saints.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 
 
 # Password validation
@@ -124,3 +115,36 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ],
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 25
+}
+
+LEAFLET_CONFIG = {
+    'DEFAULT_CENTER': (6.0, 45.0),
+    'DEFAULT_ZOOM': 16,
+    'TILES': 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+}
+
+# needs to be replaced by non-deprecated editor in the future
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Custom',
+        'toolbar_Custom': [
+            ['Format', 'TextColor'],
+            ['Bold', 'Italic', 'Underline', 'Superscript'],
+            ['NumberedList', 'BulletedList', 'Blockquote'],
+            ['RemoveFormat', 'Source']
+        ],
+        'colorButton_colors': '000000,ff0000,00ccff,009900,f0c000',
+        'colorButton_enableMore': False,
+        'colorButton_enableAutomatic': False,
+    }
+}

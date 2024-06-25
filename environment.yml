@@ -1,10 +1,10 @@
 name: saints
 channels:
-  - anaconda
   - conda-forge
+  - anaconda
   - defaults
 dependencies:
-  - python==3.11
+  - python==3.12
   - gdal
   - pip
   - pip:

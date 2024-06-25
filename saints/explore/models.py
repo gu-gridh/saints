@@ -1,7 +1,8 @@
 from django.db import models
 from django.conf import settings
-# from django.contrib.gis.geos import Point
-
+from django.contrib.gis.db import models as gis_models
+from django.contrib.gis.geos import Point
+from ckeditor.fields import RichTextField
 
 # Create your models here.
 
@@ -25,11 +26,17 @@ LANGUAGES = {
 
 
 # Abstract Models
+class NotesMixin(models.Model):
+    comment = RichTextField(null=True, blank=True)
+    notes = models.TextField(blank=True, help_text="For internal notes")
+
+    class Meta:
+        abstract = True
+
+
 class EntityMixin(models.Model):
-    notes = models.TextField(blank=True)
-    comment = models.TextField(blank=True)
-    created = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(app_label)s_%(class)s_created")
-    modified = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(app_label)s_%(class)s_modified")
+    created = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, editable=False, null=True, related_name="%(app_label)s_%(class)s_created")
+    modified = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, editable=False, null=True, related_name="%(app_label)s_%(class)s_modified")
     updated = models.DateField(auto_now=True)
 
     class Meta:
@@ -37,8 +44,9 @@ class EntityMixin(models.Model):
 
 
 class DatesMixin(models.Model):
-    not_after = models.CharField(max_length=21, blank=True)
-    not_before = models.CharField(max_length=21, blank=True)
+    # original model allows not only date strigns, so dates need to be charfields
+    not_after = models.CharField(max_length=30, blank=True, verbose_name="End date")
+    not_before = models.CharField(max_length=30, blank=True, verbose_name="First indication date")
     date_note = models.TextField(blank=True)
 
     class Meta:
@@ -46,10 +54,9 @@ class DatesMixin(models.Model):
 
 
 class NameMixin(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, verbose_name="Attested name")
     language = models.CharField(max_length=4, choices=LANGUAGES)
-    # not only dates, so needs to be a charfield
-    not_before = models.CharField(max_length=21, blank=True)
+    not_before = models.CharField(max_length=21, blank=True, verbose_name="Attested date")
     updated = models.DateField(auto_now=True)
 
     class Meta:
@@ -71,7 +78,12 @@ class TypeMixin(models.Model):
 
 # Type models
 class AgentType(TypeMixin):
-    pass
+    # TODO: limit choices
+    AGENT_TYPES = {
+        "Type of Agent": "Type of Agent",
+        "Type of Involvement": "Type of Involvement",
+    }
+    level = models.CharField(max_length=20, choices=AGENT_TYPES)
 
 
 class OrganizationType(TypeMixin):
@@ -80,77 +92,120 @@ class OrganizationType(TypeMixin):
 
 class PlaceType(TypeMixin):
     PLACE_TYPES = {
-        "T": "Type of Place",
-        "S": "Subcategory",
+        "Place Type": "Place Type",
+        "Subcategory": "Subcategory",
+        "Cult Place Type": "Cult Place Type",
     }
-    level = models.CharField(max_length=1, choices=PLACE_TYPES)
-    aat_code = models.URLField(blank=True)
+    parent = models.ForeignKey("self", on_delete=models.RESTRICT,
+                               # TODO: place type and cult place type can't have a parent
+                               limit_choices_to={"level": "Place Type"}, null=True, blank=True)
+    level = models.CharField(max_length=15, choices=PLACE_TYPES)
+    aat = models.URLField(blank=True)
 
 
 class CultType(TypeMixin):
     CULT_TYPES = {
-        "T": "Type of Evidence",
-        "I": "Intermediate",
-        "S": "Subcategory",
+        "Type of Evidence": "Type of Evidence",
+        "Intermediate": "Intermediate",
+        "Subcategory": "Subcategory",
     }
-    level = models.CharField(max_length=1, choices=CULT_TYPES)
-    aat_code = models.URLField(blank=True)
+    level = models.CharField(max_length=20, choices=CULT_TYPES)
+    # TODO: query: limit_choices_to={"level": "Type of Evidence" or Intermediate depending on level},
+    parent = models.ForeignKey("self", on_delete=models.RESTRICT, null=True, blank=True)
+    aat = models.URLField(blank=True)
     wikidata = models.URLField(blank=True)
+
+    class Meta:
+        verbose_name = "Cult Manifestation Type"
+        verbose_name_plural = "Cult Manifestation Types"
 
 
 # Relation models
-class Office(EntityMixin, DatesMixin):
+class RelationCultAgent(models.Model):
+    cult = models.ForeignKey("Cult", on_delete=models.CASCADE)
+    agent = models.ForeignKey("Agent", on_delete=models.CASCADE)
+    agent_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is Agent uncertain?")
+    agent_main = models.BooleanField(blank=True)
+    agent_alternative = models.CharField(max_length=3, blank=True, null=True)
+    updated = models.DateField(auto_now=True)
+
+
+class RelationOffice(EntityMixin, DatesMixin):
     agent = models.ForeignKey("Agent", on_delete=models.CASCADE)
     organization = models.ForeignKey("Organization", on_delete=models.CASCADE)
-    type = models.ForeignKey(AgentType, on_delete=models.RESTRICT)
+    role = models.ForeignKey(AgentType, limit_choices_to={"level": "Type of Involvement"}, on_delete=models.RESTRICT)
+
+
+class RelationDigitalResource(EntityMixin):
+    cult = models.ForeignKey("Cult", on_delete=models.CASCADE)
+    resource_uri = models.URLField(blank=True)
+    resource_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is digital resource uncertain?")
+
+
+class RelationQuote(models.Model):
+    place = models.ForeignKey("Place", on_delete=models.CASCADE)
+    quote = models.ForeignKey("Quote", on_delete=models.CASCADE)
+    quote_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is quote uncertain?")
+    updated = models.DateField(auto_now=True)
+
+
+class RelationOtherPlace(models.Model):
+    cult = models.ForeignKey("Cult", on_delete=models.CASCADE)
+    place = models.ForeignKey("Place", on_delete=models.CASCADE)
+    role = models.ForeignKey(PlaceType, limit_choices_to={"level": "Cult Place Type"}, on_delete=models.RESTRICT)
+    place_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is place uncertain?")
+    updated = models.DateField(auto_now=True)
 
 
 # Core models
-class Organization(EntityMixin, DatesMixin):
+class Organization(EntityMixin, NotesMixin, DatesMixin):
     name = models.CharField(max_length=255, help_text="Name in English")
     wikidata = models.URLField(blank=True)
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True)
-    organization_type = models.ForeignKey(OrganizationType, on_delete=models.RESTRICT)
+    organization_type = models.ForeignKey(OrganizationType, on_delete=models.RESTRICT, null=True, blank=True)
 
     def __str__(self):
-        return "|".join([self.name, self.organization_type.name])
+        if not self.organization_type:
+            return ""
+        return "|".join(filter(None, [self.name, self.organization_type.name]))
 
 
-class Agent(EntityMixin):
-    AGENT_TYPES = {
-        "S": "Saint",
-        "P": "Person"
-    }
+class Agent(EntityMixin, NotesMixin):
     GENDER_TYPES = {
-        "M": "Man",
-        "W": "Woman",
-        "N": "N/A",
+        "Man": "Man",
+        "Woman": "Woman",
+        "N/A": "N/A",
     }
     name = models.CharField(max_length=255, help_text="Name in English")
-    agent_type = models.CharField(max_length=1, choices=AGENT_TYPES)
-    rel_type = models.ManyToManyField(AgentType)
-    gender = models.CharField(max_length=1, blank=True, choices=GENDER_TYPES)
-    held_office = models.ManyToManyField(Organization, through=Office)
-    not_before = models.CharField(max_length=21, blank=True)
+    saint = models.BooleanField()
+    agent_type = models.ManyToManyField(AgentType, blank=True, limit_choices_to={"level": "Type of Agent"})
+    gender = models.CharField(max_length=10, null=True, blank=True, choices=GENDER_TYPES)
+    held_office = models.ManyToManyField(Organization, through=RelationOffice)
+    not_before = models.CharField(max_length=21, blank=True, verbose_name="Attested dates")
     attributes = models.TextField(blank=True)
     uri = models.URLField(blank=True)
     iconclass = models.CharField(max_length=255, blank=True)
     wikidata = models.URLField(blank=True)
 
     def __str__(self):
-        return "|".join([self.name, self.gender, self.not_before])
+        return "|".join(filter(None, [self.name, self.gender, self.not_before]))
 
 
-class Place(EntityMixin, DatesMixin):
+class Place(EntityMixin, NotesMixin, DatesMixin):
     name = models.CharField(max_length=255, help_text="Name in English")
     place_type = models.ForeignKey(PlaceType, on_delete=models.RESTRICT,
-                                   limit_choices_to={"level": "S"})
-    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True)
-    # geom = models.PointField(geography=True, default=Point(0.0, 0.0))
-    municipality = models.CharField(max_length=255, help_text="Modern Location")
-    county = models.CharField(max_length=255)
-    country = models.CharField(max_length=255)
-    # exclude = models.BooleanField(null=True, help_text="")
+                                   limit_choices_to={"level": "Subcategory"})
+    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="place_children")
+    parish = models.ForeignKey("Parish", on_delete=models.SET_NULL, null=True, blank=True)
+    quote = models.ManyToManyField("Quote", through=RelationQuote)
+    geometry = gis_models.PointField(default=Point(0.0, 0.0))
+    certainty_type = models.BooleanField(null=True, blank=True, help_text="Is type certain?")
+    certainty = models.BooleanField(null=True, blank=True, help_text="Is location certain?")
+    municipality = models.CharField(max_length=255, null=True, blank=True, help_text="Modern Location")
+    county = models.CharField(max_length=255, null=True, blank=True)
+    country = models.CharField(max_length=255, null=True, blank=True)
+    exclude = models.BooleanField(null=True, help_text="")
+    not_after = models.CharField(max_length=30, blank=True, verbose_name="Destruction date")
     # type_indication =
     construction_date = models.CharField(max_length=21, blank=True)
     bebr_id = models.URLField(blank=True)
@@ -158,56 +213,64 @@ class Place(EntityMixin, DatesMixin):
     wikidata = models.URLField(blank=True)
 
     def __str__(self):
-        return "|".join([self.name, self.municipality, self.place_type.name])
+        return "|".join(filter(None, [self.name, self.municipality, self.place_type.name]))
 
 
-class Cult(EntityMixin, DatesMixin):
+class Cult(EntityMixin, NotesMixin, DatesMixin):
     EXTANT_TYPES = {
-        "E": "Extant",
-        "L": "Lost",
-        "N": "N/A",
+        "Extant": "Extant",
+        "Lost": "Lost",
+        "N/A": "N/A",
     }
     COLOUR = {
-        "R": "Red",
-        "U": "Blue",
-        "G": "Green",
-        "B": "Black",
-        "Y": "Yellow",
-        "P": "Purple",
-        "O": "Brown",
-        "W": "White",
+        "Red": "Red",
+        "Blue": "Blue",
+        "Green": "Green",
+        "Black": "Black",
+        "Yellow": "Yellow",
+        "Purple": "Purple",
+        "Brown": "Brown",
+        "White": "White",
     }
-    time_period = models.CharField(max_length=255, blank=True)
-    # minyear = models.DateField()
-    # maxyear = models.DateField()
+    time_period = models.CharField(max_length=255, blank=True, verbose_name="Function time-period")
+    minyear = models.PositiveSmallIntegerField(default=0)
+    maxyear = models.PositiveSmallIntegerField(default=0)
     production_date = models.CharField(max_length=21, blank=True)
-    extant = models.CharField(max_length=1, choices=EXTANT_TYPES)
-    colour = models.CharField(max_length=1, choices=COLOUR)
+    extant = models.CharField(max_length=10, choices=EXTANT_TYPES)
+    colour = models.CharField(max_length=10, choices=COLOUR)
     placement = models.CharField(max_length=255, blank=True)
     placement_uncertainty = models.BooleanField(null=True, help_text="Is placement uncertain?")
     place = models.ForeignKey(Place, on_delete=models.SET_NULL, null=True)
+    relation_other_place = models.ManyToManyField(Place, through=RelationOtherPlace, related_name="relation_other_place")
+    relation_cult_agent = models.ManyToManyField(Agent, through=RelationCultAgent, related_name="relation_cult_agent")
     place_uncertainty = models.BooleanField(null=True, help_text="Is place uncertain?")
     in_parish = models.BooleanField(help_text="Is cult located in a parish?")
     parent = models.ForeignKey("self", on_delete=models.SET_NULL,
-                               null=True, blank=True, related_name="cult_parent")
+                               null=True, blank=True, related_name="cult_children")
     associated = models.ForeignKey("self", on_delete=models.SET_NULL,
                                    null=True, blank=True, related_name="cult_associated")    
     cult_uncertainty = models.BooleanField(null=True, help_text="Is cult uncertain?")
     type_uncertainty = models.BooleanField(null=True, help_text="Is type uncertain?")
     cult_type = models.ForeignKey(CultType, on_delete=models.RESTRICT,
-                                  limit_choices_to={"level": "S"})
+                                  limit_choices_to={"level": "Subcategory"})
     feast_day = models.CharField(max_length=21, blank=True)
     agent = models.ManyToManyField(Agent, blank=True)
     quote = models.ManyToManyField("Quote", blank=True)
+    relation_digital_resource = models.ManyToManyField("RelationDigitalResource", blank=True, related_name="relation_digital_resource")
 
     def __str__(self):
-        return "|".join([self.place.name, self.cult_type.name])
+        return "|".join(filter(None, [self.place.name, self.cult_type.name]))
+
+    class Meta:
+        verbose_name = "Cult Manifestation"
+        verbose_name_plural = "Cult Manifestations"
 
 
-class Parish(EntityMixin, DatesMixin):
+class Parish(EntityMixin, NotesMixin, DatesMixin):
     name = models.CharField(max_length=255, help_text="Name in English")
-    parish_number = models.PositiveSmallIntegerField(blank=True)
+    snid_4 = models.PositiveSmallIntegerField(default=0)
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True)
+    origin = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="origin_parish")
     organization = models.ForeignKey(Organization, on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name="parish_organization")
     medival_organization = models.ForeignKey(Organization, on_delete=models.SET_NULL,
@@ -216,49 +279,62 @@ class Parish(EntityMixin, DatesMixin):
 
     class Meta:
         verbose_name_plural = "parishes"
-    
+
     def __str__(self):
-        return "|".join([self.name, self.organization.name])
+        return "|".join(filter(None, [self.name]))
 
 
-class Source(EntityMixin, DatesMixin):
+class Source(EntityMixin, NotesMixin, DatesMixin):
     SOURCE_TYPES = {
-        "T": "Tryckt",
-        "M": "Ms",
-        "D": "Digital",
-        "O": "Oral",
-        "N": "N/A"
+        "Tryckt": "Tryckt",
+        "Ms": "Ms",
+        "Digital": "Digital",
+        "Oral": "Oral",
+        "N/A": "N/A"
     }
     name = models.CharField(max_length=255, help_text="Shortname")
-    title = models.CharField(max_length=255, blank=True)
-    source_type = models.CharField(max_length=1, choices=SOURCE_TYPES)
+    title = models.CharField(max_length=300, blank=True)
+    source_type = models.CharField(max_length=10, choices=SOURCE_TYPES)
     specific_type = models.CharField(max_length=255, blank=True)
     author = models.CharField(max_length=255, blank=True)
     publisher = models.CharField(max_length=255, blank=True)
     pub_place = models.CharField(max_length=255, blank=True)
-    pub_year = models.DateField(blank=True)
+    pub_year = models.CharField(max_length=255, blank=True)
+    insource = models.TextField(blank=True)
     archive = models.CharField(max_length=255, blank=True)
     archive_name = models.CharField(max_length=255, blank=True)
     pages = models.CharField(max_length=10, blank=True)
     uri = models.URLField(blank=True)
     libris_uri = models.URLField(blank=True)
 
+    def __str__(self):
+        return "|".join(filter(None, [self.name, self.author, self.pub_year]))
 
-class Quote(EntityMixin, DatesMixin):
+
+class Quote(EntityMixin, NotesMixin, DatesMixin):
     source = models.ForeignKey(Source, on_delete=models.RESTRICT, null=True)
-    page = models.CharField(max_length=255, blank=True)
+    page = models.CharField(max_length=255, blank=True, help_text="Page or folio")
     language = models.CharField(max_length=4, blank=True, choices=LANGUAGES)
     uri = models.URLField(blank=True)
-    transcription = models.TextField(blank=True)
+    quote_transcription = RichTextField(null=True, blank=True)
     transcribed_by = models.CharField(max_length=255, blank=True)
-    translation = models.TextField(blank=True)
+    translation = RichTextField(null=True, blank=True)
     translated_by = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        if self.source:
+            return "|".join(filter(None, [self.source.name, self.page]))
+        else:
+            return self.page
 
 
 class FeastDay(EntityMixin):
     day = models.CharField(max_length=5, help_text="Day in format 00-00")
     type = models.CharField(max_length=255, blank=True)
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "|".join(filter(None, [self.day, self.type]))
 
 
 # Name models
@@ -268,6 +344,8 @@ class AgentName(NameMixin):
 
 class OrganizationName(NameMixin):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    created = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(app_label)s_%(class)s_created")
+    modified = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, editable=False, related_name="%(app_label)s_%(class)s_modified")
 
 
 class PlaceName(NameMixin):

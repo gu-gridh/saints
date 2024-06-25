@@ -27,7 +27,16 @@ conda activate saints
 
 Before installing Django, it is advised to first look through the Django [tutorial](https://docs.djangoproject.com/en/4.1/intro/tutorial01/) and documentation.
 
-For a local installation, a `configs` folder with database credentials for your local database is needed.
+For a local installation, a `.env` file with your secret key and database credentials for your local database is needed.
+```bash
+SECRET_KEY=<topsecret>
+DB_LOCAL_NAME=<local_db_name>
+DB_LOCAL_USER=<local_user>
+DB_LOCAL_PASS=<local_pw>
+HOST=127.0.0.1
+PORT=5432
+```
+
 Your local database needs the `postgis` extension which can be added as postgres user with:
 ```bash
 \connect <databasename>

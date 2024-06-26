@@ -10,3 +10,7 @@ fixtures
 __pychache__
 db.sqlite3
 migrations
+
+# Deployment 
+*.sh
+/static*

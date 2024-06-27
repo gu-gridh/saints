@@ -152,6 +152,8 @@ class CultTypeSerializer(serializers.ModelSerializer):
 
 
 class CultSerializer(serializers.ModelSerializer):
+    created = UserSerializer(read_only=True)
+    modified = UserSerializer(read_only=True)
     place = PlaceMiniSerializer(read_only=True)
     cult_type = CultTypeSerializer(read_only=True)
     quote = QuoteSerializer(read_only=True, many=True)
@@ -160,10 +162,12 @@ class CultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Cult
-        exclude = ['created', 'modified', 'notes']
+        exclude = ['notes']
 
 
 class PlaceSerializer(serializers.ModelSerializer):
+    created = UserSerializer(read_only=True)
+    modified = UserSerializer(read_only=True)
     parish = ParishMiniSerializer(read_only=True)
     place_type = PlaceTypeMiniSerializer(read_only=True)
     parent = PlaceMiniSerializer(read_only=True)
@@ -174,4 +178,4 @@ class PlaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Place
-        exclude = ['created', 'modified', 'updated', 'notes']
+        exclude = ['notes']

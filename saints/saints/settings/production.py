@@ -15,7 +15,7 @@ from saints.settings.common import *
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1','localhost','https://saints.dh.gu.se']
+ALLOWED_HOSTS = ['127.0.0.1','localhost','saints.dh.gu.se']
 
 CSRF_TRUSTED_ORIGINS = ['https://saints.dh.gu.se']
 CSRF_COOKIE_SECURE = True

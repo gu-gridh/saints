@@ -12,7 +12,6 @@ router.register("source", views.SourcesViewSet, basename="source")
 router.register("agenttype", views.AgentTypesViewSet, basename="agenttype")
 router.register("culttype", views.CultTypesViewSet, basename="culttype")
 router.register("placetype", views.PlaceTypesViewSet, basename="placetype")
-router.register("agentname", views.AgentNamesViewSet, basename="agentname")
 
 urlpatterns = [
     path("", include(router.urls)),

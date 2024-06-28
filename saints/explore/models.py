@@ -193,8 +193,9 @@ class Agent(EntityMixin, NotesMixin):
 
 class Place(EntityMixin, NotesMixin, DatesMixin):
     name = models.CharField(max_length=255, help_text="Name in English")
+    # places do not neccessarily have a type in case of unknown places
     place_type = models.ForeignKey(PlaceType, on_delete=models.RESTRICT,
-                                   limit_choices_to={"level": "Subcategory"})
+                                   limit_choices_to={"level": "Subcategory"}, blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="place_children")
     parish = models.ForeignKey("Parish", on_delete=models.SET_NULL, null=True, blank=True)
     quote = models.ManyToManyField("Quote", through=RelationQuote)

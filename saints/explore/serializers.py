@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Agent, AgentType, AgentName, Place, PlaceName, PlaceType, \
     Cult, CultType, \
-    Source, Parish, Quote, Organization, RelationCultAgent, RelationOffice
+    Source, Parish, Quote, Organization, OrganizationType, RelationCultAgent, RelationOffice
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -40,7 +40,19 @@ class OrganizationMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
+class OrganizationTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = OrganizationType
+        exclude = ['updated']
+
+
 class OrganizationSerializer(serializers.ModelSerializer):
+    organization_type = OrganizationTypeSerializer(read_only=True)
+    organization_names = serializers.SerializerMethodField()
+
+    def get_organization_names(self, obj):
+        return obj.organizationname_set.all().values('name','language','not_before')
 
     class Meta:
         model = Organization
@@ -62,7 +74,7 @@ class AgentSerializer(serializers.ModelSerializer):
     agent_names = serializers.SerializerMethodField()
 
     def get_agent_names(self, obj):
-        return obj.agentname_set.all()
+        return obj.agentname_set.all().values('name','language','not_before')
 
     class Meta:
         model = Agent
@@ -172,9 +184,12 @@ class PlaceSerializer(serializers.ModelSerializer):
     place_type = PlaceTypeMiniSerializer(read_only=True)
     parent = PlaceMiniSerializer(read_only=True)
     quote = QuoteSerializer(read_only=True, many=True)
-    place_name = PlaceNameSerializer(read_only=True, many=True)
     place_children = PlaceMiniSerializer(read_only=True, many=True)
     # cult_relations = CultSerializer(read_only=True)
+    place_names = serializers.SerializerMethodField()
+
+    def get_place_names(self, obj):
+        return obj.placename_set.all().values('name','language','not_before')
 
     class Meta:
         model = Place

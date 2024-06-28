@@ -163,6 +163,15 @@ class CultTypeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class CultMiniSerializer(serializers.ModelSerializer):
+    place = serializers.CharField(source='place.name')
+    cult_type = serializers.CharField(source='cult_type.name')
+
+    class Meta:
+        model = Cult
+        fields = ['place', 'cult_type', 'minyear', 'maxyear']
+
+
 class CultSerializer(serializers.ModelSerializer):
     created = UserSerializer(read_only=True)
     modified = UserSerializer(read_only=True)

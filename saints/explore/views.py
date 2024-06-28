@@ -4,8 +4,9 @@ from . import models
 from rest_framework.decorators import action
 from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
-    SourceSerializer, OrganizationSerializer, OrganizationMiniSerializer, \
-    AgentNameSerializer, AgentMiniSerializer, PlaceMiniSerializer
+    SourceSerializer, OrganizationSerializer, \
+    AgentNameSerializer, AgentMiniSerializer, PlaceMiniSerializer, \
+    CultMiniSerializer
 
 
 # Create your views here.
@@ -69,10 +70,17 @@ class AgentNamesViewSet(viewsets.ReadOnlyModelViewSet):
 
 class CultViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.Cult.objects.all()
-    serializer_class = CultSerializer
+    
+    def get_serializer_class(self):
+        mini = self.request.query_params.get('mini')
+        if mini is not None:
+            return CultMiniSerializer
+        else:
+            return CultSerializer
+
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['place__name']
-    ordering_fields = ['place__name']
+    ordering_fields = ['place__name', 'cult_type__name']
     ordering = ['place__name']
 
 

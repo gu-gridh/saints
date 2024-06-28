@@ -108,7 +108,7 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(Q(name__startswith=first_letter)
                                        | Q(title__startswith=first_letter)
                                        | Q(author__startswith=first_letter))
-        return queryset
+        return queryset.order_by('name')
 
     serializer_class = SourceSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -124,14 +124,18 @@ class PlaceTypesViewSet(viewsets.ReadOnlyModelViewSet):
         and/or the first letter, by filtering against a `type`
         and/or `letter` query parameter in the URL.
         """
-        queryset = models.PlaceType.objects.all()
+        queryset = models.PlaceType.objects.exclude(level="Cult Place Type")
         parent = self.request.query_params.get('parent')
+        level = self.request.query_params.get('level')
         if parent is not None:
-            queryset = queryset.filter(parent=parent)
-        else:
-            queryset = queryset.filter(parent=None)
+            queryset = queryset.filter(parent__in=parent.split(','))
+        if level is not None:
+            queryset = queryset.filter(level=level)
         return queryset
     serializer_class = PlaceTypeSerializer
+    ordering_fields = ['name']
+    ordering = ['name']
+
 
 
 class CultTypesViewSet(viewsets.ReadOnlyModelViewSet):
@@ -143,12 +147,15 @@ class CultTypesViewSet(viewsets.ReadOnlyModelViewSet):
         """
         queryset = models.CultType.objects.all()
         parent = self.request.query_params.get('parent')
+        level = self.request.query_params.get('level')
         if parent is not None:
             queryset = queryset.filter(parent__in=parent.split(','))
-        else:
-            queryset = queryset.filter(parent=None)
-        return queryset
+        if level is not None:
+            queryset = queryset.filter(level=level)
+        return queryset.order_by('name')
     serializer_class = CultTypeSerializer
+    ordering_fields = ['name']
+    ordering = ['name']
 
 
 class AgentTypesViewSet(viewsets.ReadOnlyModelViewSet):
@@ -160,7 +167,13 @@ class AgentTypesViewSet(viewsets.ReadOnlyModelViewSet):
         """
         queryset = models.AgentType.objects.all()
         saint = self.request.query_params.get('saint')
+        gender = self.request.query_params.get('gender')
         if saint is not None:
-            queryset = queryset.filter(agent__saint=saint)
-        return queryset
+            if gender is not None:
+                queryset = queryset.filter(agent__saint=saint, agent__gender=gender).distinct()
+            else:
+                queryset = queryset.filter(agent__saint=saint).distinct()
+        return queryset.order_by('name')
     serializer_class = AgentTypeSerializer
+    ordering_fields = ['name']
+    ordering = ['name']

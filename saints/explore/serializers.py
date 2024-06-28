@@ -89,10 +89,20 @@ class AgentMiniSerializer(serializers.ModelSerializer):
 
 
 class CultAgentRelationSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField(source='agent.id')
+    name = serializers.ReadOnlyField(source='agent.name')
+    
+    class Meta:
+        model = RelationCultAgent
+        fields = ['id','name','agent_uncertainty','agent_main','agent_alternative']
+
+
+class CultAgentRelationMiniSerializer(serializers.ModelSerializer):
+    name = serializers.ReadOnlyField(source='agent.name')
 
     class Meta:
         model = RelationCultAgent
-        fields = '__all__'
+        fields = ['name']
 
 
 class PlaceTypeSerializer(serializers.ModelSerializer):
@@ -166,10 +176,11 @@ class CultTypeSerializer(serializers.ModelSerializer):
 class CultMiniSerializer(serializers.ModelSerializer):
     place = serializers.CharField(source='place.name')
     cult_type = serializers.CharField(source='cult_type.name')
+    relation_cult_agent = CultAgentRelationMiniSerializer(read_only=True, many=True, source='relationcultagent_set')
 
     class Meta:
         model = Cult
-        fields = ['place', 'cult_type', 'minyear', 'maxyear']
+        fields = ['id','place', 'cult_type', 'relation_cult_agent', 'minyear', 'maxyear']
 
 
 class CultSerializer(serializers.ModelSerializer):
@@ -178,7 +189,7 @@ class CultSerializer(serializers.ModelSerializer):
     place = PlaceMiniSerializer(read_only=True)
     cult_type = CultTypeSerializer(read_only=True)
     quote = QuoteSerializer(read_only=True, many=True)
-    # relation_cult_agent = CultAgentRelationSerializer(read_only=True, many=True)
+    relation_cult_agent = CultAgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
     relation_other_place = PlaceMiniSerializer(read_only=True, many=True)
 
     class Meta:

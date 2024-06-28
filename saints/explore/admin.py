@@ -253,7 +253,7 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
     list_display = ["id", "cult_type", "place", "updated"]
     search_fields = ["id", "cult_type__name", "place__name"]
     autocomplete_fields = ["place", "parent", "associated", "cult_type", "quote"]
-    raw_id_fields = ["agent", "quote", "relation_other_place"]
+    raw_id_fields = ["relation_cult_agent", "quote", "relation_other_place"]
     readonly_fields = ["created_by", "modified_by", "updated", "children"]
     fieldsets = [
         (

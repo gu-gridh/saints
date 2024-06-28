@@ -255,7 +255,6 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
     cult_type = models.ForeignKey(CultType, on_delete=models.RESTRICT,
                                   limit_choices_to={"level": "Subcategory"})
     feast_day = models.CharField(max_length=21, blank=True)
-    agent = models.ManyToManyField(Agent, blank=True)
     quote = models.ManyToManyField("Quote", blank=True)
     relation_digital_resource = models.ManyToManyField("RelationDigitalResource", blank=True, related_name="relation_digital_resource")
 

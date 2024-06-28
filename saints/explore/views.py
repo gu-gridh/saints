@@ -16,11 +16,11 @@ class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):        
         gender = self.request.query_params.get('gender')
         agent_type = self.request.query_params.get('type')
-        queryset = models.Agent.objects.all()
+        queryset = models.Agent.objects.all().order_by('name')
         if gender is not None:
-            queryset = queryset.filter(gender=gender)
+            queryset = queryset.filter(gender=gender).order_by('name')
         if agent_type is not None:
-            queryset = queryset.filter(agent_type__in=agent_type.split(','))
+            queryset = queryset.filter(agent_type__in=agent_type.split(',')).order_by('name')
         return queryset
     
     def get_serializer_class(self):
@@ -39,14 +39,14 @@ class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
 class SaintsViewSet(AgentsViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = queryset.filter(saint=True)
+        queryset = queryset.filter(saint=True).order_by('name')
         return queryset
 
 
 class PeopleViewSet(AgentsViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = queryset.filter(saint=False)
+        queryset = queryset.filter(saint=False).order_by('name')
         return queryset
 
 
@@ -69,7 +69,15 @@ class AgentNamesViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CultViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = models.Cult.objects.all()
+    def get_queryset(self):        
+        cult_type = self.request.query_params.get('type')
+        uncertainty = self.request.query_params.get('uncertainty')
+        queryset = models.Cult.objects.all()
+        if cult_type is not None:
+            queryset = queryset.filter(cult_type__in=cult_type.split(','))
+        if uncertainty is not None:
+            queryset = queryset.filter(cult_uncertainty=uncertainty)
+        return queryset.order_by('place__name')
     
     def get_serializer_class(self):
         mini = self.request.query_params.get('mini')
@@ -93,7 +101,9 @@ class PlacesViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = models.Place.objects.all()
         place_type = self.request.query_params.get('type')
         if place_type is not None:
-            queryset = queryset.filter(place_type=place_type)
+            queryset = queryset.filter(place_type=place_type).order_by('name')
+        else:
+            queryset = queryset.order_by('name')
         return queryset
 
     def get_serializer_class(self):
@@ -141,13 +151,13 @@ class PlaceTypesViewSet(viewsets.ReadOnlyModelViewSet):
         and/or the first letter, by filtering against a `type`
         and/or `letter` query parameter in the URL.
         """
-        queryset = models.PlaceType.objects.exclude(level="Cult Place Type")
+        queryset = models.PlaceType.objects.exclude(level="Cult Place Type").order_by('name')
         parent = self.request.query_params.get('parent')
         level = self.request.query_params.get('level')
         if parent is not None:
-            queryset = queryset.filter(parent__in=parent.split(','))
+            queryset = queryset.filter(parent__in=parent.split(',')).order_by('name')
         if level is not None:
-            queryset = queryset.filter(level=level)
+            queryset = queryset.filter(level=level).order_by('name')
         return queryset
     serializer_class = PlaceTypeSerializer
     ordering_fields = ['name']

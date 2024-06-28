@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
     SourceSerializer, OrganizationSerializer, OrganizationMiniSerializer, \
-    AgentNameSerializer
+    AgentNameSerializer, AgentMiniSerializer, PlaceMiniSerializer
 
 
 # Create your views here.
@@ -19,9 +19,16 @@ class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
         if gender is not None:
             queryset = queryset.filter(gender=gender)
         if agent_type is not None:
-            queryset = queryset.filter(relation_type__in=agent_type.split(','))
+            queryset = queryset.filter(agent_type__in=agent_type.split(','))
         return queryset
-    serializer_class = AgentSerializer
+    
+    def get_serializer_class(self):
+        mini = self.request.query_params.get('mini')
+        if mini is not None:
+            return AgentMiniSerializer
+        else:
+            return AgentSerializer
+
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'agentname__name']
     ordering_fields = ['name']
@@ -81,11 +88,13 @@ class PlacesViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(place_type=place_type)
         return queryset
 
-    # def retrieve(self, request, pk=None):
-    #    obj = super().retrieve(request, pk)
-    #   return obj
+    def get_serializer_class(self):
+        mini = self.request.query_params.get('mini')
+        if mini is not None:
+            return PlaceMiniSerializer
+        else:
+            return PlaceSerializer
 
-    serializer_class = PlaceSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
     ordering_fields = ['name']

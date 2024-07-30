@@ -122,8 +122,8 @@ class CultType(TypeMixin):
 
 # Relation models
 class RelationCultAgent(models.Model):
-    cult = models.ForeignKey("Cult", on_delete=models.CASCADE)
-    agent = models.ForeignKey("Agent", on_delete=models.CASCADE)
+    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
+    agent = models.ForeignKey("Agent", on_delete=models.RESTRICT)
     agent_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is Agent uncertain?")
     agent_main = models.BooleanField(blank=True)
     agent_alternative = models.CharField(max_length=3, blank=True, null=True)
@@ -131,27 +131,27 @@ class RelationCultAgent(models.Model):
 
 
 class RelationOffice(EntityMixin, DatesMixin):
-    agent = models.ForeignKey("Agent", on_delete=models.CASCADE)
-    organization = models.ForeignKey("Organization", on_delete=models.CASCADE)
+    agent = models.ForeignKey("Agent", on_delete=models.RESTRICT)
+    organization = models.ForeignKey("Organization", on_delete=models.RESTRICT)
     role = models.ForeignKey(AgentType, limit_choices_to={"level": "Type of Involvement"}, on_delete=models.RESTRICT)
 
 
 class RelationDigitalResource(EntityMixin):
-    cult = models.ForeignKey("Cult", on_delete=models.CASCADE)
+    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
     resource_uri = models.URLField(blank=True)
     resource_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is digital resource uncertain?")
 
 
 class RelationQuote(models.Model):
-    place = models.ForeignKey("Place", on_delete=models.CASCADE)
-    quote = models.ForeignKey("Quote", on_delete=models.CASCADE)
+    place = models.ForeignKey("Place", on_delete=models.RESTRICT)
+    quote = models.ForeignKey("Quote", on_delete=models.RESTRICT)
     quote_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is quote uncertain?")
     updated = models.DateField(auto_now=True)
 
 
 class RelationOtherPlace(models.Model):
-    cult = models.ForeignKey("Cult", on_delete=models.CASCADE)
-    place = models.ForeignKey("Place", on_delete=models.CASCADE)
+    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
+    place = models.ForeignKey("Place", on_delete=models.RESTRICT)
     role = models.ForeignKey(PlaceType, limit_choices_to={"level": "Cult Place Type"}, on_delete=models.RESTRICT)
     place_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is place uncertain?")
     updated = models.DateField(auto_now=True)
@@ -197,7 +197,7 @@ class Place(EntityMixin, NotesMixin, DatesMixin):
     place_type = models.ForeignKey(PlaceType, on_delete=models.RESTRICT,
                                    limit_choices_to={"level": "Subcategory"}, blank=True, null=True)
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="place_children")
-    parish = models.ForeignKey("Parish", on_delete=models.SET_NULL, null=True, blank=True)
+    parish = models.ForeignKey("Parish", on_delete=models.RESTRICT, null=True, blank=True)
     quote = models.ManyToManyField("Quote", through=RelationQuote)
     geometry = gis_models.PointField(default=Point(0.0, 0.0))
     certainty_type = models.BooleanField(null=True, blank=True, help_text="Is type certain?")
@@ -241,7 +241,7 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
     colour = models.CharField(max_length=10, choices=COLOUR)
     placement = models.CharField(max_length=255, blank=True)
     placement_uncertainty = models.BooleanField(null=True, help_text="Is placement uncertain?")
-    place = models.ForeignKey(Place, on_delete=models.SET_NULL, null=True)
+    place = models.ForeignKey(Place, on_delete=models.RESTRICT, null=True)
     relation_other_place = models.ManyToManyField(Place, through=RelationOtherPlace, related_name="relation_other_place")
     relation_cult_agent = models.ManyToManyField(Agent, through=RelationCultAgent, related_name="relation_cult_agent")
     place_uncertainty = models.BooleanField(null=True, help_text="Is place uncertain?")
@@ -271,9 +271,9 @@ class Parish(EntityMixin, NotesMixin, DatesMixin):
     snid_4 = models.PositiveSmallIntegerField(default=0)
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True)
     origin = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="origin_parish")
-    organization = models.ForeignKey(Organization, on_delete=models.SET_NULL,
+    organization = models.ForeignKey(Organization, on_delete=models.RESTRICT,
                                      null=True, blank=True, related_name="parish_organization")
-    medival_organization = models.ForeignKey(Organization, on_delete=models.SET_NULL,
+    medival_organization = models.ForeignKey(Organization, on_delete=models.RESTRICT,
                                              null=True, blank=True, related_name="medival_organization")
     wikidata = models.URLField(blank=True)
 
@@ -331,7 +331,7 @@ class Quote(EntityMixin, NotesMixin, DatesMixin):
 class FeastDay(EntityMixin):
     day = models.CharField(max_length=5, help_text="Day in format 00-00")
     type = models.CharField(max_length=255, blank=True)
-    agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
+    agent = models.ForeignKey(Agent, on_delete=models.RESTRICT)
 
     def __str__(self):
         return "|".join(filter(None, [self.day, self.type]))

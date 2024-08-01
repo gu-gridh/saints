@@ -142,6 +142,24 @@ class RelationDigitalResource(EntityMixin):
     resource_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is digital resource uncertain?")
 
 
+class RelationMBResource(EntityMixin):
+    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
+    resource_uri = models.URLField(blank=True)
+
+
+class RelationIconographic(EntityMixin):
+    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
+    iconographic = models.ForeignKey("Iconographic", on_delete=models.RESTRICT)
+    icon_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is relation uncertain?")
+
+    @property
+    def filename(self):
+        return self.iconographic.filename
+
+    def __str__(self):
+        return "|".join(filter(None, [self.cult.place.name, self.cult.cult_type.name, self.iconographic.motif2]))
+
+
 class RelationQuote(models.Model):
     place = models.ForeignKey("Place", on_delete=models.RESTRICT)
     quote = models.ForeignKey("Quote", on_delete=models.RESTRICT)
@@ -326,6 +344,47 @@ class Quote(EntityMixin, NotesMixin, DatesMixin):
             return "|".join(filter(None, [self.source.name, self.page]))
         else:
             return self.page
+
+
+# needed here as we can't have foreign key in other database
+# not going to change overly complicated data structure for now
+class Iconographic(DatesMixin):
+    CARD_TYPES = {
+        "be": "be",
+        "hk": "hk",
+        "lb": "lb",
+        "mb": "mb",
+        "or": "or"
+    }
+    card = models.PositiveSmallIntegerField()
+    card_type = models.CharField(max_length=2, choices=CARD_TYPES)
+    filename = models.CharField(max_length=255)
+    front_back = models.CharField(max_length=1)
+    volume = models.PositiveSmallIntegerField()
+    uri = models.URLField(blank=True, null=True)
+    church = models.CharField(max_length=255, blank=True, null=True)
+    subject1 = models.CharField(max_length=255, blank=True, null=True)
+    subject2 = models.CharField(max_length=255, blank=True, null=True)
+    subject3 = models.CharField(max_length=255, blank=True, null=True)
+    motif1 = models.CharField(max_length=255, blank=True, null=True)
+    motif2 = models.CharField(max_length=255, blank=True, null=True)
+    bebr_id = models.CharField(max_length=255, blank=True, null=True)
+    site_no = models.CharField(max_length=255, blank=True, null=True)
+    raa_no = models.CharField(max_length=255, blank=True, null=True)
+    description = models.CharField(max_length=255)
+    filename2 = models.CharField(max_length=255)
+    note = models.CharField(max_length=255, blank=True, null=True)
+    ocr = models.TextField(blank=True)
+    aat = models.CharField(max_length=255, blank=True, null=True)
+    site_uri = models.URLField(blank=True, null=True)
+    toe = models.CharField(max_length=255, blank=True, null=True)
+    technique = models.CharField(max_length=255, blank=True, null=True)
+    saints = models.CharField(max_length=255, blank=True, null=True)
+    place = models.ForeignKey(Place, on_delete=models.RESTRICT, null=True)
+    parish = models.ForeignKey(Parish, on_delete=models.RESTRICT, null=True)
+
+    def __str__(self):
+        return "|".join(filter(None, [self.church, self.motif2]))
 
 
 class FeastDay(EntityMixin):

@@ -3,6 +3,8 @@ from .models import *
 #from formset.richtext import controls
 #from formset.richtext.widgets import RichTextarea
 from django.contrib.gis import admin as gis_admin
+from django.conf import settings
+from django.utils.html import format_html
 
 
 #richtext_widget = RichTextarea(control_elements=[
@@ -28,6 +30,20 @@ class EntityAdminMixin:
         else:
             obj.modified = request.user
         super().save_model(request, obj, form, change)
+
+
+class ImageMixin:
+    list_per_page = 25
+
+    def image_preview(self, obj):
+        return format_html('<img src="{}/{}" height="300"/>',
+                           settings.DATA_URL,
+                           obj.filename)
+
+    def thumbnail_preview(self, obj):
+        return format_html('<img src="{}thumbs/{}" height="100" />',
+                           settings.DATA_URL,
+                           obj.filename)
 
 
 class ModelAdmin(admin.ModelAdmin):
@@ -128,6 +144,20 @@ class RelationDigitalResourceInline(admin.TabularInline):
     extra = 0
     model = RelationDigitalResource
     fields = ["resource_uri", "resource_uncertainty"]
+
+
+class RelationIconographicInline(ImageMixin, admin.TabularInline):
+    extra = 0
+    model = RelationIconographic
+    autocomplete_fields = ["iconographic"]
+    fields = ["thumbnail_preview", "iconographic", "icon_uncertainty"]
+    readonly_fields = ["thumbnail_preview"]
+
+
+class RelationMBResourceInline(admin.TabularInline):
+    extra = 0
+    model = RelationMBResource
+    fields = ["resource_uri"]
 
 
 class FeastDayInline(admin.TabularInline):
@@ -296,6 +326,8 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
         RelationOtherPlaceInline,
         RelationCultAgentInline,
         RelationDigitalResourceInline,
+        RelationIconographicInline,
+        RelationMBResourceInline,
     ]
 
     def children(self, obj):
@@ -501,6 +533,20 @@ class FeastDayAdmin(EntityAdminMixin, ModelAdmin):
     autocomplete_fields = ["agent"]
 
 
+@admin.register(Iconographic)
+class IconographicAdmin(ImageMixin, ModelAdmin):
+    model = Iconographic
+    list_display = ["id", "thumbnail_preview", "card", "church", "motif2", "saints"]
+    search_fields = ["id", "church", "motif2", "saints"]
+    autocomplete_fields = ["parish", "place"]
+    readonly_fields = ["image_preview", "id", "card", "card_type", "filename", "front_back",
+                       "volume", "uri", "church", "subject1", "subject2",
+                       "subject3", "motif1", "motif2", "bebr_id", "site_no",
+                       "raa_no", "description", "filename2", "note", "ocr",
+                       "aat", "site_uri", "toe", "technique", "saints",
+                       "date_note", "not_before", "not_after"]
+
+
 @admin.register(RelationCultAgent)
 class RelationCultAgentAdmin(ModelAdmin):
     model = RelationCultAgent
@@ -545,6 +591,23 @@ class RelationDigitalResourceAdmin(EntityAdminMixin, ModelAdmin):
     list_display = ["id", "cult", "resource_uri", "updated"]
     autocomplete_fields = ["cult"]
     search_fields = ["cult", "resource_uri"]
+
+
+@admin.register(RelationMBResource)
+class RelationMBResourceAdmin(EntityAdminMixin, ModelAdmin):
+    model = RelationMBResource
+    list_display = ["id", "cult", "resource_uri", "updated"]
+    autocomplete_fields = ["cult"]
+    search_fields = ["cult", "resource_uri"]
+
+
+@admin.register(RelationIconographic)
+class RelationIconographicAdmin(EntityAdminMixin, ImageMixin, ModelAdmin):
+    model = RelationIconographic
+    list_display = ["id", "cult", "thumbnail_preview", "iconographic", "updated"]
+    autocomplete_fields = ["cult", "iconographic"]
+    search_fields = ["cult", "iconographic"]
+    readonly_fields = ["thumbnail_preview"]
 
 
 @admin.register(RelationOtherPlace)

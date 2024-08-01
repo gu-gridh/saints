@@ -11,7 +11,6 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
 
 # Create your views here.
 # ViewSets define the view behavior.
-
 class AgentsViewSet(viewsets.ReadOnlyModelViewSet):    
     def get_queryset(self):        
         gender = self.request.query_params.get('gender')
@@ -162,7 +161,6 @@ class PlaceTypesViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PlaceTypeSerializer
     ordering_fields = ['name']
     ordering = ['name']
-
 
 
 class CultTypesViewSet(viewsets.ReadOnlyModelViewSet):

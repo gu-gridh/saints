@@ -91,10 +91,10 @@ class AgentMiniSerializer(serializers.ModelSerializer):
 class CultAgentRelationSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='agent.id')
     name = serializers.ReadOnlyField(source='agent.name')
-    
+
     class Meta:
         model = RelationCultAgent
-        fields = ['id','name','agent_uncertainty','agent_main','agent_alternative']
+        fields = ['id', 'name', 'agent_uncertainty', 'agent_main', 'agent_alternative']
 
 
 class CultAgentRelationMiniSerializer(serializers.ModelSerializer):

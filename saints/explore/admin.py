@@ -618,6 +618,14 @@ class RelationOtherPlaceAdmin(ModelAdmin):
     search_fields = ["place", "cult", "role"]
 
 
+@admin.register(RelationOtherAgent)
+class RelationOtherAgentAdmin(ModelAdmin):
+    model = RelationOtherAgent
+    list_display = ["id", "cult", "role", "agent", "updated"]
+    autocomplete_fields = ["agent", "cult", "role"]
+    search_fields = ["agent", "cult", "role"]
+
+
 @admin.register(AgentType)
 class AgentTypeAdmin(ModelAdmin):
     list_display = ["id", "name", "name_sv", "name_fi", "level", "updated"]

@@ -136,6 +136,14 @@ class RelationOffice(EntityMixin, DatesMixin):
     role = models.ForeignKey(AgentType, limit_choices_to={"level": "Type of Involvement"}, on_delete=models.RESTRICT)
 
 
+class RelationOtherAgent(models.Model):
+    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
+    agent = models.ForeignKey("Agent", on_delete=models.RESTRICT)
+    agent_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is Agent uncertain?")
+    role = models.ForeignKey(AgentType, limit_choices_to={"level": "Type of Involvement"}, on_delete=models.RESTRICT)
+    updated = models.DateField(auto_now=True)
+
+
 class RelationDigitalResource(EntityMixin):
     cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
     resource_uri = models.URLField(blank=True)
@@ -274,7 +282,7 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
                                   limit_choices_to={"level": "Subcategory"})
     feast_day = models.CharField(max_length=21, blank=True)
     quote = models.ManyToManyField("Quote", blank=True)
-    relation_digital_resource = models.ManyToManyField("RelationDigitalResource", blank=True, related_name="relation_digital_resource")
+    relation_iconographic = models.ManyToManyField("Iconographic", through=RelationIconographic, blank=True)
 
     def __str__(self):
         return "|".join(filter(None, [self.place.name, self.cult_type.name]))

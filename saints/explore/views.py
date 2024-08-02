@@ -77,7 +77,7 @@ class CultViewSet(viewsets.ReadOnlyModelViewSet):
         if uncertainty is not None:
             queryset = queryset.filter(cult_uncertainty=uncertainty)
         return queryset.order_by('place__name')
-    
+
     def get_serializer_class(self):
         mini = self.request.query_params.get('mini')
         if mini is not None:

@@ -140,6 +140,20 @@ class RelationCultAgentInline(admin.TabularInline):
     autocomplete_fields = ["agent"]
 
 
+class RelationOtherAgentInline(admin.TabularInline):
+    extra = 0
+    model = RelationOtherAgent
+    fields = ["role", "agent", "agent_uncertainty"]
+    autocomplete_fields = ["agent"]
+
+
+class RelationOtherCultInline(admin.TabularInline):
+    extra = 0
+    model = RelationOtherAgent
+    fields = ["role", "cult", "agent_uncertainty"]
+    autocomplete_fields = ["cult"]
+
+
 class RelationDigitalResourceInline(admin.TabularInline):
     extra = 0
     model = RelationDigitalResource
@@ -211,7 +225,8 @@ class AgentAdmin(EntityAdminMixin, ModelAdmin):
     inlines = [
         AgentNameInline,
         FeastDayInline,
-        RelationOfficeInline
+        RelationOfficeInline,
+        RelationOtherCultInline,
     ]
 
 
@@ -325,6 +340,7 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
     inlines = [
         RelationOtherPlaceInline,
         RelationCultAgentInline,
+        RelationOtherAgentInline,
         RelationDigitalResourceInline,
         RelationIconographicInline,
         RelationMBResourceInline,

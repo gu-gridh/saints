@@ -1,4 +1,6 @@
+from typing import Any
 from django.contrib import admin
+from django.http import HttpRequest
 from .models import *
 #from formset.richtext import controls
 #from formset.richtext.widgets import RichTextarea
@@ -228,6 +230,7 @@ class AgentAdmin(EntityAdminMixin, ModelAdmin):
         RelationOfficeInline,
         RelationOtherCultInline,
     ]
+    ordering = ["name"]
 
 
 @admin.register(Place)
@@ -286,6 +289,7 @@ class PlaceAdmin(EntityAdminMixin, ModelAdmin, gis_admin.GISModelAdmin):
         CultInline,
         RelationQuoteInline
     ]
+    ordering = ["name"]
 
     @admin.display(description="Children")
     def children(self, obj):
@@ -345,6 +349,7 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
         RelationIconographicInline,
         RelationMBResourceInline,
     ]
+    ordering = ["place__name"]
 
     def children(self, obj):
         return obj.cult_children.all()
@@ -393,7 +398,7 @@ class OrganizationAdmin(EntityAdminMixin, ModelAdmin):
     inlines = [
         OrganizationNameInline
     ]
-
+    ordering = ["name"]
 
 @admin.register(Parish)
 class ParishAdmin(EntityAdminMixin, ModelAdmin):
@@ -444,6 +449,7 @@ class ParishAdmin(EntityAdminMixin, ModelAdmin):
     inlines = [
         ParishNameInline
     ]
+    ordering = ["name"]
 
 
 @admin.register(Source)
@@ -491,6 +497,7 @@ class SourceAdmin(EntityAdminMixin, ModelAdmin):
     inlines = [
         QuoteInline
     ]
+    ordering = ["name"]
 
 
 @admin.register(Quote)
@@ -540,6 +547,7 @@ class QuoteAdmin(EntityAdminMixin, ModelAdmin):
 
         ),
     ]
+    ordering = ["source__name"]
 
 
 @admin.register(FeastDay)
@@ -561,6 +569,7 @@ class IconographicAdmin(ImageMixin, ModelAdmin):
                        "raa_no", "description", "filename2", "note", "ocr",
                        "aat", "site_uri", "toe", "technique", "saints",
                        "date_note", "not_before", "not_after"]
+    ordering = ["filename"]
 
 
 @admin.register(RelationCultAgent)
@@ -568,7 +577,7 @@ class RelationCultAgentAdmin(ModelAdmin):
     model = RelationCultAgent
     list_display = ["id", "cult", "agent", "agent_main", "agent_alternative", "updated"]
     autocomplete_fields = ["cult", "agent"]
-    search_fields = ["cult", "agent"]
+    search_fields = ["cult__place__name", "cult__cult_type__name", "agent__name"]
 
 
 @admin.register(RelationOffice)
@@ -576,7 +585,7 @@ class RelationOfficeAdmin(EntityAdminMixin, ModelAdmin):
     model = RelationOffice
     list_display = ["id", "agent", "role", "organization", "updated"]
     autocomplete_fields = ["agent", "organization", "role"]
-    search_fields = ["agent", "organization", "role"]
+    search_fields = ["agent__name", "organization__name", "role__name"]
     readonly_fields = ["id", "created_by", "modified_by", "updated"]
     fieldsets = [
         (
@@ -606,7 +615,7 @@ class RelationDigitalResourceAdmin(EntityAdminMixin, ModelAdmin):
     model = RelationDigitalResource
     list_display = ["id", "cult", "resource_uri", "updated"]
     autocomplete_fields = ["cult"]
-    search_fields = ["cult", "resource_uri"]
+    search_fields = ["cult__place__name", "cult__cult_type__name", "resource_uri"]
 
 
 @admin.register(RelationMBResource)
@@ -614,7 +623,7 @@ class RelationMBResourceAdmin(EntityAdminMixin, ModelAdmin):
     model = RelationMBResource
     list_display = ["id", "cult", "resource_uri", "updated"]
     autocomplete_fields = ["cult"]
-    search_fields = ["cult", "resource_uri"]
+    search_fields = ["cult__place__name", "cult__cult_type__name", "resource_uri"]
 
 
 @admin.register(RelationIconographic)
@@ -622,7 +631,7 @@ class RelationIconographicAdmin(EntityAdminMixin, ImageMixin, ModelAdmin):
     model = RelationIconographic
     list_display = ["id", "cult", "thumbnail_preview", "iconographic", "updated"]
     autocomplete_fields = ["cult", "iconographic"]
-    search_fields = ["cult", "iconographic"]
+    search_fields = ["cult__place__name", "cult__cult_type__name", "iconographic__church", "iconographic__motif2"]
     readonly_fields = ["thumbnail_preview"]
 
 
@@ -631,7 +640,7 @@ class RelationOtherPlaceAdmin(ModelAdmin):
     model = RelationOtherPlace
     list_display = ["id", "place", "role", "cult", "updated"]
     autocomplete_fields = ["place", "cult", "role"]
-    search_fields = ["place", "cult", "role"]
+    search_fields = ["place__name", "cult__place__name", "cult__cult_type__name", "role__name"]
 
 
 @admin.register(RelationOtherAgent)
@@ -639,13 +648,14 @@ class RelationOtherAgentAdmin(ModelAdmin):
     model = RelationOtherAgent
     list_display = ["id", "cult", "role", "agent", "updated"]
     autocomplete_fields = ["agent", "cult", "role"]
-    search_fields = ["agent", "cult", "role"]
+    search_fields = ["agent__name", "cult__place__name", "cult__cult_type__name", "role__name"]
 
 
 @admin.register(AgentType)
 class AgentTypeAdmin(ModelAdmin):
     list_display = ["id", "name", "name_sv", "name_fi", "level", "updated"]
     search_fields = ["name", "name_sv", "name_fi"]
+    ordering = ["name"]
 
 
 @admin.register(OrganizationType)
@@ -665,3 +675,4 @@ class CultTypeAdmin(ModelAdmin):
     list_display = ["id", "name", "name_sv", "name_fi", "level", "updated"]
     autocomplete_fields = ["parent"]
     search_fields = ["name", "name_sv", "name_fi"]
+    ordering = ["name"]

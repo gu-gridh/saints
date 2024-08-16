@@ -137,7 +137,7 @@ class PlacesViewSet(viewsets.ReadOnlyModelViewSet):
         mini = self.request.query_params.get('mini')
         if mini is not None:
             return LargeResultsSetPagination
-        return api_settings.DEFAULT_PAGINATION_CLASS 
+        return api_settings.DEFAULT_PAGINATION_CLASS
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = property(fget=get_pagination_class)
@@ -187,6 +187,7 @@ class PlaceTypesViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(level=level).order_by('name')
         return queryset
     serializer_class = PlaceTypeSerializer
+    pagination_class = LargeResultsSetPagination
     ordering_fields = ['name']
     ordering = ['name']
 
@@ -207,6 +208,7 @@ class CultTypesViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(level=level)
         return queryset.order_by('name')
     serializer_class = CultTypeSerializer
+    pagination_class = LargeResultsSetPagination
     ordering_fields = ['name']
     ordering = ['name']
 
@@ -228,5 +230,6 @@ class AgentTypesViewSet(viewsets.ReadOnlyModelViewSet):
                 queryset = queryset.filter(agent__saint=saint).distinct()
         return queryset.order_by('name')
     serializer_class = AgentTypeSerializer
+    pagination_class = LargeResultsSetPagination
     ordering_fields = ['name']
     ordering = ['name']

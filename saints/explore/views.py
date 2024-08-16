@@ -21,11 +21,18 @@ class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):        
         gender = self.request.query_params.get('gender')
         agent_type = self.request.query_params.get('type')
+        operator = self.request.query_params.get('op')
         queryset = models.Agent.objects.all().order_by('name')
         if gender is not None:
             queryset = queryset.filter(gender=gender).order_by('name')
         if agent_type is not None:
-            queryset = queryset.filter(agent_type__in=agent_type.split(',')).order_by('name')
+            types = agent_type.split(',')
+            if operator=="AND" and len(types) < 5:
+                for t in types:
+                    queryset = queryset.filter(agent_type=t)
+                queryset = queryset.order_by('name')
+            else:
+                queryset = queryset.filter(agent_type__in=types).order_by('name')
         queryset = queryset.prefetch_related('relation_cult_agent')
         return queryset
 

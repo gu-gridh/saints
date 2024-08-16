@@ -62,6 +62,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://saints.dh.gu.se",
     os.getenv('LOCAL'),
     os.getenv('LOCAL127'),
+    os.getenv('LOCALDEV'),
 ]
 
 ROOT_URLCONF = 'saints.urls'
@@ -141,7 +142,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 25
+    'PAGE_SIZE': 200
 }
 
 LEAFLET_CONFIG = {

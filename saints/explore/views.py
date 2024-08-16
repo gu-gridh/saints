@@ -1,4 +1,5 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, pagination
+from rest_framework.settings import api_settings
 from django.db.models import Q
 from . import models
 from rest_framework.decorators import action
@@ -7,6 +8,11 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     SourceSerializer, OrganizationSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMiniSerializer, \
     CultMiniSerializer
+
+
+class LargeResultsSetPagination(pagination.PageNumberPagination):
+    page_size = 200
+    max_page_size = 200
 
 
 # Create your views here.
@@ -20,16 +26,24 @@ class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(gender=gender).order_by('name')
         if agent_type is not None:
             queryset = queryset.filter(agent_type__in=agent_type.split(',')).order_by('name')
+        queryset = queryset.prefetch_related('relation_cult_agent')
         return queryset
-    
+
     def get_serializer_class(self):
         mini = self.request.query_params.get('mini')
         if mini is not None:
             return AgentMiniSerializer
         else:
             return AgentSerializer
-
+    
+    def get_pagination_class(self):
+        mini = self.request.query_params.get('mini')
+        if mini is not None:
+            return LargeResultsSetPagination
+        return api_settings.DEFAULT_PAGINATION_CLASS 
+    
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    pagination_class = property(fget=get_pagination_class)
     search_fields = ['name', 'agentname__name']
     ordering_fields = ['name']
     ordering = ['name']
@@ -84,8 +98,15 @@ class CultViewSet(viewsets.ReadOnlyModelViewSet):
             return CultMiniSerializer
         else:
             return CultSerializer
+    
+    def get_pagination_class(self):
+        mini = self.request.query_params.get('mini')
+        if mini is not None:
+            return LargeResultsSetPagination
+        return api_settings.DEFAULT_PAGINATION_CLASS 
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    pagination_class = property(fget=get_pagination_class)
     search_fields = ['place__name']
     ordering_fields = ['place__name', 'cult_type__name']
     ordering = ['place__name']
@@ -111,8 +132,15 @@ class PlacesViewSet(viewsets.ReadOnlyModelViewSet):
             return PlaceMiniSerializer
         else:
             return PlaceSerializer
+    
+    def get_pagination_class(self):
+        mini = self.request.query_params.get('mini')
+        if mini is not None:
+            return LargeResultsSetPagination
+        return api_settings.DEFAULT_PAGINATION_CLASS 
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    pagination_class = property(fget=get_pagination_class)
     search_fields = ['name']
     ordering_fields = ['name']
     ordering = ['name']

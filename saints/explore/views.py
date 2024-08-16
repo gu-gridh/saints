@@ -87,7 +87,8 @@ class CultViewSet(viewsets.ReadOnlyModelViewSet):
         uncertainty = self.request.query_params.get('uncertainty')
         queryset = models.Cult.objects.all()
         if cult_type is not None:
-            queryset = queryset.filter(cult_type__in=cult_type.split(','))
+            types = cult_type.split(',')
+            queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))
         if uncertainty is not None:
             queryset = queryset.filter(cult_uncertainty=uncertainty)
         return queryset.order_by('place__name')
@@ -121,7 +122,8 @@ class PlacesViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = models.Place.objects.all()
         place_type = self.request.query_params.get('type')
         if place_type is not None:
-            queryset = queryset.filter(place_type=place_type).order_by('name')
+            types = place_type.split(',')
+            queryset = queryset.filter(Q(place_type__in=types) | Q(place_type__parent__in=types)).order_by('name')
         else:
             queryset = queryset.order_by('name')
         return queryset

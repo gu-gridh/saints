@@ -116,7 +116,7 @@ class PlaceTypeMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlaceType
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'parent']
 
 
 class SourceSerializer(serializers.ModelSerializer):

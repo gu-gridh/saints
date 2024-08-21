@@ -267,7 +267,7 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
     colour = models.CharField(max_length=10, choices=COLOUR)
     placement = models.CharField(max_length=255, blank=True)
     placement_uncertainty = models.BooleanField(null=True, help_text="Is placement uncertain?")
-    place = models.ForeignKey(Place, on_delete=models.RESTRICT, null=True)
+    place = models.ForeignKey(Place, on_delete=models.RESTRICT, null=True, related_name="relation_cult_place")
     relation_other_place = models.ManyToManyField(Place, through=RelationOtherPlace, related_name="relation_other_place")
     relation_cult_agent = models.ManyToManyField(Agent, through=RelationCultAgent, related_name="relation_cult_agent")
     place_uncertainty = models.BooleanField(null=True, help_text="Is place uncertain?")

@@ -2,7 +2,6 @@ from rest_framework import viewsets, filters, pagination
 from rest_framework.settings import api_settings
 from django.db.models import Q
 from . import models
-from rest_framework.decorators import action
 from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
     SourceSerializer, OrganizationSerializer, \
@@ -17,8 +16,8 @@ class LargeResultsSetPagination(pagination.PageNumberPagination):
 
 # Create your views here.
 # ViewSets define the view behavior.
-class AgentsViewSet(viewsets.ReadOnlyModelViewSet):    
-    def get_queryset(self):        
+class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
+    def get_queryset(self):
         gender = self.request.query_params.get('gender')
         agent_type = self.request.query_params.get('type')
         operator = self.request.query_params.get('op')
@@ -27,7 +26,7 @@ class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(gender=gender).order_by('name')
         if agent_type is not None:
             types = agent_type.split(',')
-            if operator=="AND" and len(types) < 5:
+            if operator == "AND" and len(types) < 5:
                 for t in types:
                     queryset = queryset.filter(agent_type=t)
                 queryset = queryset.order_by('name')
@@ -42,13 +41,13 @@ class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
             return AgentMiniSerializer
         else:
             return AgentSerializer
-    
+
     def get_pagination_class(self):
         mini = self.request.query_params.get('mini')
         if mini is not None:
             return LargeResultsSetPagination
-        return api_settings.DEFAULT_PAGINATION_CLASS 
-    
+        return api_settings.DEFAULT_PAGINATION_CLASS
+
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = property(fget=get_pagination_class)
     search_fields = ['name', 'agentname__name']
@@ -89,7 +88,7 @@ class AgentNamesViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CultViewSet(viewsets.ReadOnlyModelViewSet):
-    def get_queryset(self):        
+    def get_queryset(self):
         cult_type = self.request.query_params.get('type')
         uncertainty = self.request.query_params.get('uncertainty')
         queryset = models.Cult.objects.all()
@@ -106,12 +105,12 @@ class CultViewSet(viewsets.ReadOnlyModelViewSet):
             return CultMiniSerializer
         else:
             return CultSerializer
-    
+
     def get_pagination_class(self):
         mini = self.request.query_params.get('mini')
         if mini is not None:
             return LargeResultsSetPagination
-        return api_settings.DEFAULT_PAGINATION_CLASS 
+        return api_settings.DEFAULT_PAGINATION_CLASS
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = property(fget=get_pagination_class)
@@ -141,7 +140,7 @@ class PlacesViewSet(viewsets.ReadOnlyModelViewSet):
             return PlaceMiniSerializer
         else:
             return PlaceSerializer
-    
+
     def get_pagination_class(self):
         mini = self.request.query_params.get('mini')
         if mini is not None:
@@ -226,7 +225,7 @@ class AgentTypesViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         """
         Optionally restrict the returned agent types
-        depending if it is a saint or not, by filtering 
+        depending if it is a saint or not, by filtering
         against a 'saint' query parameter in the URL.
         """
         queryset = models.AgentType.objects.all()

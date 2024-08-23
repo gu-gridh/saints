@@ -22,7 +22,7 @@ class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
         agent_type = self.request.query_params.get('type')
         operator = self.request.query_params.get('op')
         queryset = models.Agent.objects.all().order_by('name')
-        if gender is not None:
+        if gender is not None and gender != '':
             queryset = queryset.filter(gender=gender).order_by('name')
         if agent_type is not None:
             types = agent_type.split(',')

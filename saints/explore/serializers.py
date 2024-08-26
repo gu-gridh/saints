@@ -63,10 +63,12 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 
 class RelationOfficeSerializer(serializers.ModelSerializer):
+    organization = OrganizationMiniSerializer(read_only=True)
+    role = AgentTypeSerializer(read_only=True)
 
     class Meta:
         model = RelationOffice
-        fields = '__all__'
+        fields = ['organization', 'role', 'not_before', 'not_after', 'date_note']
 
 
 class AgentMiniSerializer(serializers.ModelSerializer):
@@ -282,7 +284,7 @@ class AgentSerializer(serializers.ModelSerializer):
     modified = UserSerializer(read_only=True)
     agent_type = AgentTypeSerializer(read_only=True, many=True)
     feast_day = FeastDaySerializer(read_only=True, many=True, source='feastday_set')
-    held_office = OrganizationMiniSerializer(read_only=True, many=True)
+    held_office = RelationOfficeSerializer(read_only=True, many=True, source='relationoffice_set')
     agent_names = serializers.SerializerMethodField()
     relation_cult_agent = CultAgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
     relation_other_agent = RelationOtherCultSerializer(read_only=True, many=True, source='relationotheragent_set')

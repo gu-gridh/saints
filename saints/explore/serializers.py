@@ -1,9 +1,11 @@
 from rest_framework import serializers
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from django.contrib.auth.models import User
 from .models import Agent, AgentType, AgentName, Place, PlaceName, PlaceType, \
-    Cult, CultType, Source, Parish, Quote, Organization, OrganizationType, \
-    RelationCultAgent, RelationOffice, RelationDigitalResource, Iconographic, \
-    RelationMBResource, RelationOtherAgent, RelationOtherPlace
+    Cult, CultType, Source, Parish, Quote, Organization, FeastDay, \
+    OrganizationType, RelationCultAgent, RelationOffice, \
+    RelationDigitalResource, Iconographic, RelationMBResource, \
+    RelationOtherAgent, RelationOtherPlace
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -118,6 +120,13 @@ class SourceSerializer(serializers.ModelSerializer):
         exclude = ['created', 'modified', 'notes']
 
 
+class FeastDaySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = FeastDay
+        fields = ['day', 'type']
+
+
 class SourceMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -141,13 +150,19 @@ class ParishMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'medival_organization']
 
 
-class PlaceMiniSerializer(serializers.ModelSerializer):
+class PlaceMiniSerializer(GeoFeatureModelSerializer):
     parish = ParishMiniSerializer(read_only=True)
     place_type = PlaceTypeMiniSerializer(read_only=True)
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['geometry'] = ret['geometry']['coordinates']
+        return ret
+
     class Meta:
         model = Place
-        fields = ['id', 'name', 'municipality', 'parish', 'place_type']
+        fields = ['id', 'name', 'municipality', 'parish', 'place_type', 'geometry']
+        geo_field = 'geometry'
 
 
 class CultTypeMiniSerializer(serializers.ModelSerializer):
@@ -265,6 +280,7 @@ class AgentSerializer(serializers.ModelSerializer):
     created = UserSerializer(read_only=True)
     modified = UserSerializer(read_only=True)
     agent_type = AgentTypeSerializer(read_only=True, many=True)
+    feast_day = FeastDaySerializer(read_only=True, many=True, source='feastday_set')
     held_office = OrganizationMiniSerializer(read_only=True, many=True)
     agent_names = serializers.SerializerMethodField()
     relation_cult_agent = CultAgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
@@ -278,7 +294,7 @@ class AgentSerializer(serializers.ModelSerializer):
         exclude = ['notes']
 
 
-class PlaceSerializer(serializers.ModelSerializer):
+class PlaceSerializer(GeoFeatureModelSerializer):
     created = UserSerializer(read_only=True)
     modified = UserSerializer(read_only=True)
     parish = ParishMiniSerializer(read_only=True)
@@ -293,6 +309,12 @@ class PlaceSerializer(serializers.ModelSerializer):
     def get_place_names(self, obj):
         return obj.placename_set.all().values('name', 'language', 'not_before')
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['geometry'] = ret['geometry']['coordinates']
+        return ret
+
     class Meta:
         model = Place
         exclude = ['notes']
+        geo_field = 'geometry'

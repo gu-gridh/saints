@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from rest_framework_gis.serializers import GeoFeatureModelSerializer
+# from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from django.contrib.auth.models import User
 from .models import Agent, AgentType, AgentName, Place, PlaceName, PlaceType, \
     Cult, CultType, Source, Parish, Quote, Organization, FeastDay, \
@@ -150,19 +150,20 @@ class ParishMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'medival_organization']
 
 
-class PlaceMiniSerializer(GeoFeatureModelSerializer):
+# class PlaceMiniSerializer(GeoFeatureModelSerializer):
+class PlaceMiniSerializer(serializers.ModelSerializer):
     parish = ParishMiniSerializer(read_only=True)
     place_type = PlaceTypeMiniSerializer(read_only=True)
 
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret['geometry'] = ret['geometry']['coordinates']
-        return ret
+#   def to_representation(self, instance):
+#       ret = super().to_representation(instance)
+#       ret['geometry'] = ret['geometry']['coordinates']
+#       return ret
 
     class Meta:
         model = Place
         fields = ['id', 'name', 'municipality', 'parish', 'place_type', 'geometry']
-        geo_field = 'geometry'
+#        geo_field = 'geometry'
 
 
 class CultTypeMiniSerializer(serializers.ModelSerializer):
@@ -294,7 +295,8 @@ class AgentSerializer(serializers.ModelSerializer):
         exclude = ['notes']
 
 
-class PlaceSerializer(GeoFeatureModelSerializer):
+# class PlaceSerializer(GeoFeatureModelSerializer):
+class PlaceSerializer(serializers.ModelSerializer):
     created = UserSerializer(read_only=True)
     modified = UserSerializer(read_only=True)
     parish = ParishMiniSerializer(read_only=True)
@@ -309,12 +311,12 @@ class PlaceSerializer(GeoFeatureModelSerializer):
     def get_place_names(self, obj):
         return obj.placename_set.all().values('name', 'language', 'not_before')
 
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret['geometry'] = ret['geometry']['coordinates']
-        return ret
+#    def to_representation(self, instance):
+#        ret = super().to_representation(instance)
+#        ret['geometry'] = ret['geometry']['coordinates']
+#        return ret
 
     class Meta:
         model = Place
         exclude = ['notes']
-        geo_field = 'geometry'
+#        geo_field = 'geometry'

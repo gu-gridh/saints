@@ -2,6 +2,7 @@ psycopg<4.0
 python-dotenv<1.1
 Django<5.1
 djangorestframework==3.15.2
+djangorestframework-gis<1.2
 django-cors-headers<5
 django-filter<25
 # django-formset<1.5

@@ -396,7 +396,7 @@ class Iconographic(DatesMixin):
 
 
 class FeastDay(EntityMixin):
-    day = models.CharField(max_length=5, help_text="Day in format 00-00")
+    day = models.CharField(max_length=5, help_text="Day in format 00-00 or * for recurring events")
     type = models.CharField(max_length=255, blank=True)
     agent = models.ForeignKey(Agent, on_delete=models.RESTRICT)
 

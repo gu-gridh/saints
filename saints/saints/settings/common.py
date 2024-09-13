@@ -33,6 +33,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 INSTALLED_APPS = [
     'rest_framework',
+    'rest_framework_gis',
     # 'formset',
     'ckeditor',
     'corsheaders',

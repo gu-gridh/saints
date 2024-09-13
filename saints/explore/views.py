@@ -1,12 +1,15 @@
 from rest_framework import viewsets, filters, pagination
 from rest_framework.settings import api_settings
+from rest_framework_gis.filters import InBBoxFilter
+from rest_framework_gis.pagination import GeoJsonPagination
+from django.contrib.gis.gdal.envelope import Envelope
 from django.db.models import Q
 from . import models
 from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
     SourceSerializer, OrganizationSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMiniSerializer, \
-    CultMiniSerializer
+    PlaceMapSerializer, CultMiniSerializer
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -14,9 +17,15 @@ class LargeResultsSetPagination(pagination.PageNumberPagination):
     max_page_size = 200
 
 
+class OrderingMixin(viewsets.ReadOnlyModelViewSet):
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    ordering_fields = ['name']
+    ordering = ['name']
+
+
 # Create your views here.
 # ViewSets define the view behavior.
-class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
+class AgentsViewSet(OrderingMixin):
     def get_queryset(self):
         gender = self.request.query_params.get('gender')
         agent_type = self.request.query_params.get('type')
@@ -48,11 +57,8 @@ class AgentsViewSet(viewsets.ReadOnlyModelViewSet):
             return LargeResultsSetPagination
         return api_settings.DEFAULT_PAGINATION_CLASS
 
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = property(fget=get_pagination_class)
     search_fields = ['name', 'agentname__name']
-    ordering_fields = ['name']
-    ordering = ['name']
 
 
 class SaintsViewSet(AgentsViewSet):
@@ -69,22 +75,16 @@ class PeopleViewSet(AgentsViewSet):
         return queryset
 
 
-class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
+class OrganizationViewSet(OrderingMixin):
     queryset = models.Organization.objects.all()
     serializer_class = OrganizationSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
-    ordering_fields = ['name']
-    ordering = ['name']
 
 
-class AgentNamesViewSet(viewsets.ReadOnlyModelViewSet):
+class AgentNamesViewSet(OrderingMixin):
     queryset = models.AgentName.objects.all()
     serializer_class = AgentNameSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
-    ordering_fields = ['name']
-    ordering = ['name']
 
 
 class CultViewSet(viewsets.ReadOnlyModelViewSet):
@@ -119,7 +119,7 @@ class CultViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['place__name']
 
 
-class PlacesViewSet(viewsets.ReadOnlyModelViewSet):
+class PlacesViewSet(OrderingMixin):
     def get_queryset(self):
         """
         Optionally restrict the returned places to a type
@@ -147,11 +147,8 @@ class PlacesViewSet(viewsets.ReadOnlyModelViewSet):
             return LargeResultsSetPagination
         return api_settings.DEFAULT_PAGINATION_CLASS
 
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = property(fget=get_pagination_class)
     search_fields = ['name']
-    ordering_fields = ['name']
-    ordering = ['name']
 
 
 class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
@@ -179,7 +176,7 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['name']
 
 
-class PlaceTypesViewSet(viewsets.ReadOnlyModelViewSet):
+class PlaceTypesViewSet(OrderingMixin):
     def get_queryset(self):
         """
         Optionally restrict the returned sources to a type
@@ -196,11 +193,9 @@ class PlaceTypesViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
     serializer_class = PlaceTypeSerializer
     pagination_class = LargeResultsSetPagination
-    ordering_fields = ['name']
-    ordering = ['name']
 
 
-class CultTypesViewSet(viewsets.ReadOnlyModelViewSet):
+class CultTypesViewSet(OrderingMixin):
     def get_queryset(self):
         """
         Optionally restrict the returned cult types to
@@ -217,11 +212,9 @@ class CultTypesViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset.order_by('name')
     serializer_class = CultTypeSerializer
     pagination_class = LargeResultsSetPagination
-    ordering_fields = ['name']
-    ordering = ['name']
 
 
-class AgentTypesViewSet(viewsets.ReadOnlyModelViewSet):
+class AgentTypesViewSet(OrderingMixin):
     def get_queryset(self):
         """
         Optionally restrict the returned agent types
@@ -239,5 +232,54 @@ class AgentTypesViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset.order_by('name')
     serializer_class = AgentTypeSerializer
     pagination_class = LargeResultsSetPagination
-    ordering_fields = ['name']
-    ordering = ['name']
+
+
+class MapViewSet(viewsets.ReadOnlyModelViewSet):
+    def get_queryset(self):
+        """
+        TODO
+        """
+        options = self.request.query_params
+        layer = options.get('layer')
+        zoom = options.get('zoom')
+        if zoom is not None and zoom.isnumeric():
+            zoom = int(zoom)
+        range = options.get('range')
+        bbox = options.get('bbox')
+
+        # always filter out child places
+        queryset = models.Place.objects.filter(parent__isnull=True).order_by('name')
+
+        if bbox is not None:
+            bbox = bbox.strip().split(',')
+            bbox_coords = [
+                float(bbox[0]), float(bbox[1]),
+                float(bbox[2]), float(bbox[3]),
+            ]
+            bounding_box = Envelope((bbox_coords))
+            queryset = queryset.filter(geometry__within=bounding_box.wkt)
+
+        if layer != 'place' and range is not None:
+            years = range.split(',')
+            queryset = queryset.filter(relation_cult_place__minyear__gte=years[0],
+                                       relation_cult_place__maxyear__lte=years[1])
+        if layer == 'place':
+            if zoom is not None and zoom < 13:
+                if zoom < 9:
+                    queryset = queryset.filter(place_type__parent__in=[1,2])
+                elif zoom < 11:
+                    queryset = queryset.filter(place_type__parent__in=[1,2,3,6])
+                else:
+                    queryset = queryset.filter(place_type__parent__in=[1,2,3,4,6])
+            else:
+                # Show all places but modern church, altar and chapel in church
+                queryset = queryset.exclude(place_type__parent__in=[18,46,49])
+        return queryset
+
+    filter_backends = [InBBoxFilter, filters.SearchFilter]
+    serializer_class = PlaceMapSerializer
+    bbox_filter_field = 'geometry'
+
+    # Specialized pagination
+    # pagination_class = GeoJsonPagination
+    page_size = 10

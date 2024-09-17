@@ -91,12 +91,15 @@ class CultViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         cult_type = self.request.query_params.get('type')
         uncertainty = self.request.query_params.get('uncertainty')
+        extant = self.request.query_params.get('extant')
         queryset = models.Cult.objects.all()
         if cult_type is not None:
             types = cult_type.split(',')
             queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))
         if uncertainty is not None:
-            queryset = queryset.filter(cult_uncertainty=uncertainty)
+            queryset = queryset.filter(place_uncertainty=uncertainty)
+        if extant is not None:
+            queryset = queryset.filter(extant=extant)
         return queryset.order_by('place__name')
 
     def get_serializer_class(self):
@@ -236,34 +239,54 @@ class AgentTypesViewSet(OrderingMixin):
 
 class MapViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
-        """
-        TODO
-        """
         options = self.request.query_params
         layer = options.get('layer')
+        ids = options.get('ids')
         zoom = options.get('zoom')
         if zoom is not None and zoom.isnumeric():
             zoom = int(zoom)
         range = options.get('range')
         bbox = options.get('bbox')
 
-        # always filter out child places
-        queryset = models.Place.objects.filter(parent__isnull=True).order_by('name')
+        queryset = models.Place.objects.all()
 
-        if bbox is not None:
-            bbox = bbox.strip().split(',')
-            bbox_coords = [
-                float(bbox[0]), float(bbox[1]),
-                float(bbox[2]), float(bbox[3]),
-            ]
-            bounding_box = Envelope((bbox_coords))
-            queryset = queryset.filter(geometry__within=bounding_box.wkt)
+        if layer != 'place':
+            if range is not None and range != 'undefined':
+                years = range.split(',')
+                queryset = queryset.filter(relation_cult_place__minyear__gte=years[0],
+                                           relation_cult_place__maxyear__lte=years[1])
+            if layer == 'cult':
+                uncertainty = options.get('uncertainty')
+                extant = options.get('extant')
+                # TODO: too many results, not distinct
+                if ids is not None:
+                    types = ids.split(',')
+                    queryset = queryset.filter(Q(relation_cult_place__cult_type__in=types)
+                                               | Q(relation_cult_place__cult_type__parent__in=types)
+                                               | Q(relation_cult_place__cult_type__parent__parent__in=types))
+                if uncertainty is not None:
+                    queryset = queryset.filter(relation_cult_place__place_uncertainty=uncertainty)
+                if extant is not None:
+                    queryset = queryset.filter(relation_cult_place__extant=extant)
+            else:
+                # TODO: not working, needs double relation
+                gender = options.get('gender')
+                operator = options.get('op')
+                if gender is not None and gender != '':
+                    queryset = queryset.filter(gender=gender).order_by('name')
+                if ids is not None:
+                    types = ids.split(',')
+                    if operator == "AND" and len(types) < 5:
+                        for t in types:
+                            queryset = queryset.filter(agent_type=t)
+                    else:
+                        queryset = queryset.filter(agent_type__in=types)
+                queryset = queryset.order_by('name')
 
-        if layer != 'place' and range is not None:
-            years = range.split(',')
-            queryset = queryset.filter(relation_cult_place__minyear__gte=years[0],
-                                       relation_cult_place__maxyear__lte=years[1])
         if layer == 'place':
+            # always filter out child places
+            queryset = queryset.filter(parent__isnull=True).order_by('name')
+
             if zoom is not None and zoom < 13:
                 if zoom < 9:
                     queryset = queryset.filter(place_type__parent__in=[1,2])
@@ -274,6 +297,18 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 # Show all places but modern church, altar and chapel in church
                 queryset = queryset.exclude(place_type__parent__in=[18,46,49])
+            if ids is not None and ids != 'null':
+                types = ids.split(',')
+                queryset = queryset.filter(Q(place_type__in=types) | Q(place_type__parent__in=types)).order_by('name')
+
+        if bbox is not None:
+            bbox = bbox.strip().split(',')
+            bbox_coords = [
+                float(bbox[0]), float(bbox[1]),
+                float(bbox[2]), float(bbox[3]),
+            ]
+            bounding_box = Envelope((bbox_coords))
+            queryset = queryset.filter(geometry__within=bounding_box.wkt)
         return queryset
 
     filter_backends = [InBBoxFilter, filters.SearchFilter]

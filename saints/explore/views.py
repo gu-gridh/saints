@@ -1,15 +1,15 @@
 from rest_framework import viewsets, filters, pagination
 from rest_framework.settings import api_settings
 from rest_framework_gis.filters import InBBoxFilter
-from rest_framework_gis.pagination import GeoJsonPagination
+# from rest_framework_gis.pagination import GeoJsonPagination
 from django.contrib.gis.gdal.envelope import Envelope
 from django.db.models import Q
 from . import models
 from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
-    SourceSerializer, OrganizationSerializer, \
-    AgentNameSerializer, AgentMiniSerializer, PlaceMiniSerializer, \
-    PlaceMapSerializer, CultMiniSerializer
+    SourceSerializer, OrganizationSerializer, PlaceMiniSerializer, \
+    AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
+    CultMapSerializer, AgentMapSerializer, CultMiniSerializer
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -259,7 +259,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 uncertainty = options.get('uncertainty')
                 extant = options.get('extant')
                 # TODO: too many results, not distinct
-                if ids is not None:
+                if ids is not None and ids != 'null':
                     types = ids.split(',')
                     queryset = queryset.filter(Q(relation_cult_place__cult_type__in=types)
                                                | Q(relation_cult_place__cult_type__parent__in=types)
@@ -274,7 +274,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 operator = options.get('op')
                 if gender is not None and gender != '':
                     queryset = queryset.filter(gender=gender).order_by('name')
-                if ids is not None:
+                if ids is not None and ids != 'null':
                     types = ids.split(',')
                     if operator == "AND" and len(types) < 5:
                         for t in types:
@@ -311,8 +311,16 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(geometry__within=bounding_box.wkt)
         return queryset
 
+    def get_serializer_class(self):
+        layer = self.request.query_params.get('layer')
+        if layer == 'place':
+            return PlaceMapSerializer
+        elif layer == 'cult':
+            return CultMapSerializer
+        else:
+            return AgentMapSerializer
+
     filter_backends = [InBBoxFilter, filters.SearchFilter]
-    serializer_class = PlaceMapSerializer
     bbox_filter_field = 'geometry'
 
     # Specialized pagination

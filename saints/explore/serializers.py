@@ -164,6 +164,7 @@ class PlaceMiniSerializer(serializers.ModelSerializer):
 class PlaceMapSerializer(GeoFeatureModelSerializer):
     place_type = PlaceTypeMiniSerializer(read_only=True)
 
+    # flatten for easier access for frontend
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         properties = representation.pop('properties')
@@ -336,9 +337,27 @@ class PlaceSerializer(serializers.ModelSerializer):
         exclude = ['notes']
 
 
-class MapSerializer(GeoFeatureModelSerializer):
+class CultMapSerializer(PlaceMapSerializer):
+    ids = serializers.SerializerMethodField()
+
+    def get_ids(self, obj):
+        ids = obj.relation_cult_place.all().values('id')
+        return [id['id'] for id in ids]
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'place_type', 'geometry']
+        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
+        geo_field = 'geometry'
+
+
+class AgentMapSerializer(PlaceMapSerializer):
+    ids = serializers.SerializerMethodField()
+
+    def get_ids(self, obj):
+        ids = obj.relation_cult_place.all().values('id')
+        return [id['id'] for id in ids]
+
+    class Meta:
+        model = Place
+        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
         geo_field = 'geometry'

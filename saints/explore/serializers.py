@@ -162,7 +162,24 @@ class PlaceMiniSerializer(serializers.ModelSerializer):
 
 
 class PlaceMapSerializer(GeoFeatureModelSerializer):
-    place_type = PlaceTypeMiniSerializer(read_only=True).data['name']
+    place_type = PlaceTypeMiniSerializer(read_only=True)
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        properties = representation.pop('properties')
+        new_properties = {}
+
+        for key, value in properties.items():
+            if isinstance(value, dict):
+                for k2, val2 in value.items():
+                    new_key = key + "_" + k2
+                    new_properties[new_key] = val2
+            else:
+                new_properties[key] = value
+
+        representation['properties'] = new_properties
+
+        return representation
 
     class Meta:
         model = Place

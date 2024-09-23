@@ -93,13 +93,13 @@ class CultViewSet(viewsets.ReadOnlyModelViewSet):
         uncertainty = self.request.query_params.get('uncertainty')
         extant = self.request.query_params.get('extant')
         queryset = models.Cult.objects.all()
-        if cult_type is not None:
-            types = cult_type.split(',')
-            queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))
         if uncertainty is not None:
             queryset = queryset.filter(place_uncertainty=uncertainty)
         if extant is not None:
             queryset = queryset.filter(extant=extant)
+        if cult_type is not None:
+            types = cult_type.split(',')
+            queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))
         return queryset.order_by('place__name')
 
     def get_serializer_class(self):
@@ -250,7 +250,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
 
         queryset = models.Place.objects.all()
 
-        if layer != 'place':
+        if layer != 'place' and layer is not None:
             if range is not None and range != 'undefined':
                 years = range.split(',')
                 queryset = queryset.filter(relation_cult_place__minyear__gte=years[0],
@@ -258,17 +258,20 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             if layer == 'cult':
                 uncertainty = options.get('uncertainty')
                 extant = options.get('extant')
-                # TODO: too many results, not distinct
-                if ids is not None and ids != 'null':
-                    types = ids.split(',')
-                    queryset = queryset.filter(Q(relation_cult_place__cult_type__in=types)
-                                               | Q(relation_cult_place__cult_type__parent__in=types)
-                                               | Q(relation_cult_place__cult_type__parent__parent__in=types))
                 if uncertainty is not None:
                     queryset = queryset.filter(relation_cult_place__place_uncertainty=uncertainty)
                 if extant is not None:
                     queryset = queryset.filter(relation_cult_place__extant=extant)
+                if ids is not None and ids != 'null':
+                    types = ids.split(',')
+                    queryset = queryset.filter(Q(relation_cult_place__cult_type__in=types)
+                                               | Q(relation_cult_place__cult_type__parent__in=types)
+                                               | Q(relation_cult_place__cult_type__parent__parent__in=types)).distinct()
             else:
+                if (layer == 'saints'):
+                    queryset = queryset.filter(saint=True).order_by('name')
+                else:
+                    queryset = queryset.filter(saint=False).order_by('name')
                 # TODO: not working, needs double relation
                 gender = options.get('gender')
                 operator = options.get('op')

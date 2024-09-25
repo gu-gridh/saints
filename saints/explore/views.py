@@ -9,7 +9,8 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
     SourceSerializer, OrganizationSerializer, PlaceMiniSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
-    CultMapSerializer, AgentMapSerializer, CultMiniSerializer
+    CultMapSerializer, AgentMapSerializer, CultMiniSerializer, \
+    IconicMiniSerializer
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -256,37 +257,39 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 queryset = queryset.filter(relation_cult_place__minyear__gte=years[0],
                                            relation_cult_place__maxyear__lte=years[1])
             if layer == 'cult':
+                cultset = models.Cult.objects.all()
                 uncertainty = options.get('uncertainty')
                 extant = options.get('extant')
                 if uncertainty is not None:
-                    queryset = queryset.filter(relation_cult_place__place_uncertainty=uncertainty)
+                    cultset = cultset.filter(place_uncertainty=uncertainty)
                 if extant is not None:
-                    queryset = queryset.filter(relation_cult_place__extant=extant)
+                    cultset = cultset.filter(extant=extant)
                 if ids is not None and ids != 'null':
                     types = ids.split(',')
-                    queryset = queryset.filter(Q(relation_cult_place__cult_type__in=types)
-                                               | Q(relation_cult_place__cult_type__parent__in=types)
-                                               | Q(relation_cult_place__cult_type__parent__parent__in=types)).distinct()
+                    cultset = cultset.filter(Q(cult_type__in=types)
+                                             | Q(cult_type__parent__in=types)
+                                             | Q(cult_type__parent__parent__in=types))
+                queryset = queryset.filter(relation_cult_place__in=cultset).distinct()
             else:
-                if (layer == 'saints'):
-                    queryset = queryset.filter(saint=True).order_by('name')
-                else:
-                    queryset = queryset.filter(saint=False).order_by('name')
-                # TODO: not working, needs double relation
+                agentset = models.Agent.objects.all()
                 gender = options.get('gender')
                 operator = options.get('op')
+                if (layer == 'saints'):
+                    agentset = agentset.filter(saint=True).order_by('name')
+                else:
+                    agentset = agentset.filter(saint=False).order_by('name')
                 if gender is not None and gender != '':
-                    queryset = queryset.filter(gender=gender).order_by('name')
+                    agentset = agentset.filter(gender=gender).order_by('name')
                 if ids is not None and ids != 'null':
                     types = ids.split(',')
                     if operator == "AND" and len(types) < 5:
                         for t in types:
-                            queryset = queryset.filter(agent_type=t)
+                            agentset = agentset.filter(agent_type=t)
                     else:
-                        queryset = queryset.filter(agent_type__in=types)
-                queryset = queryset.order_by('name')
+                        agentset = agentset.filter(agent_type__in=types)
+                queryset = queryset.filter(relation_cult_place__relation_cult_agent__in=agentset).distinct()
 
-        if layer == 'place':
+        elif layer == 'place':
             # always filter out child places
             queryset = queryset.filter(parent__isnull=True).order_by('name')
 
@@ -312,6 +315,8 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             ]
             bounding_box = Envelope((bbox_coords))
             queryset = queryset.filter(geometry__within=bounding_box.wkt)
+
+        queryset = queryset.order_by('name')
         return queryset
 
     def get_serializer_class(self):

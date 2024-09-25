@@ -207,7 +207,7 @@ class IconicMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Iconographic
-        fields = ['id', 'motif2', 'filename']
+        fields = ['id', 'motif2', 'filename', 'uri']
 
 
 class CultRelationSerializer(serializers.ModelSerializer):
@@ -341,7 +341,13 @@ class CultMapSerializer(PlaceMapSerializer):
     ids = serializers.SerializerMethodField()
 
     def get_ids(self, obj):
-        ids = obj.relation_cult_place.all().values('id')
+        # print(self.context['view'])
+        type = self.context['request'].query_params.get('ids')
+        if type is not None:
+            types = type.split(',')
+            ids = obj.relation_cult_place.all().filter(cult_type__in=types).values('id')
+        else:
+            ids = obj.relation_cult_place.all().values('id')
         return [id['id'] for id in ids]
 
     class Meta:

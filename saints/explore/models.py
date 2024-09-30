@@ -110,7 +110,6 @@ class CultType(TypeMixin):
         "Subcategory": "Subcategory",
     }
     level = models.CharField(max_length=20, choices=CULT_TYPES)
-    # TODO: query: limit_choices_to={"level": "Type of Evidence" or Intermediate depending on level},
     parent = models.ForeignKey("self", on_delete=models.RESTRICT, null=True, blank=True)
     aat = models.URLField(blank=True)
     wikidata = models.URLField(blank=True)
@@ -122,11 +121,24 @@ class CultType(TypeMixin):
 
 # Relation models
 class RelationCultAgent(models.Model):
+    ALTERNATIVES = {
+        "A.1": "A.1",
+        "A.2": "A.2",
+        "A.3": "A.3",
+        "B.1": "B.1",
+        "B.2": "B.2",
+        "B.3": "B.3",
+        "C.1": "C.1",
+        "C.2": "C.2",
+        "C.3": "C.3",
+        # Keep for now
+        "Yes": "Yes",
+    }
     cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
     agent = models.ForeignKey("Agent", on_delete=models.RESTRICT)
     agent_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is Agent uncertain?")
     agent_main = models.BooleanField(blank=True)
-    agent_alternative = models.CharField(max_length=3, blank=True, null=True)
+    agent_alternative = models.CharField(max_length=3, blank=True, null=True, choices=ALTERNATIVES)
     updated = models.DateField(auto_now=True)
 
 
@@ -218,6 +230,11 @@ class Agent(EntityMixin, NotesMixin):
 
 
 class Place(EntityMixin, NotesMixin, DatesMixin):
+    INDICATION_TYPES = {
+        "Written": "Written",
+        "Artefact": "Artefact",
+        "Oral": "Oral",
+    }
     name = models.CharField(max_length=255, help_text="Name in English")
     # places do not neccessarily have a type in case of unknown places
     place_type = models.ForeignKey(PlaceType, on_delete=models.RESTRICT,
@@ -233,7 +250,7 @@ class Place(EntityMixin, NotesMixin, DatesMixin):
     country = models.CharField(max_length=255, null=True, blank=True)
     exclude = models.BooleanField(null=True, help_text="")
     not_after = models.CharField(max_length=30, blank=True, verbose_name="Destruction date")
-    # type_indication =
+    type_indication = models.CharField(max_length=10, null=True, blank=True, choices=INDICATION_TYPES)
     construction_date = models.CharField(max_length=21, blank=True)
     bebr_id = models.URLField(blank=True)
     fmis_id = models.URLField(blank=True)

@@ -1,7 +1,7 @@
 from typing import Any
 from django.contrib import admin
-from django.http import HttpRequest
 from .models import *
+from .forms import CultTypeForm
 #from formset.richtext import controls
 #from formset.richtext.widgets import RichTextarea
 from django.contrib.gis import admin as gis_admin
@@ -241,15 +241,14 @@ class PlaceAdmin(EntityAdminMixin, ModelAdmin, gis_admin.GISModelAdmin):
     autocomplete_fields = ["parent", "parish"]
     # raw_id_fields = ["quote"]
     readonly_fields = ["id", "children", "created_by", "modified_by", "updated"]
-    # type_indication =
 
     fieldsets = [
         (
             None,
             {
                 "fields": ["id", "name", "place_type", "certainty_type",
-                           "municipality", "county", "country", "certainty",
-                           "exclude", "geometry"],
+                           "type_indication", "municipality", "county",
+                           "country", "certainty", "exclude", "geometry"],
             }
         ),
         (
@@ -308,8 +307,8 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
         (
             None,
             {
-                "fields": ["place", "cult_uncertainty", "cult_type", "type_uncertainty",
-                           "extant", "placement", "placement_uncertainty",
+                "fields": ["cult_uncertainty", "cult_type", "type_uncertainty",
+                           "extant", "place", "place_uncertainty", "placement", "placement_uncertainty",
                            "in_parish", "feast_day"],
             }
         ),
@@ -329,8 +328,7 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
         (
             "Relations",
             {
-                "fields": ["parent", "associated", "children",
-                            "place_uncertainty", "quote"],
+                "fields": ["parent", "associated", "children", "quote"],
             },
         ),
         (
@@ -673,6 +671,6 @@ class PlaceTypeAdmin(ModelAdmin):
 @admin.register(CultType)
 class CultTypeAdmin(ModelAdmin):
     list_display = ["id", "name", "name_sv", "name_fi", "level", "updated"]
-    autocomplete_fields = ["parent"]
     search_fields = ["name", "name_sv", "name_fi"]
     ordering = ["name"]
+    form = CultTypeForm

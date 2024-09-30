@@ -155,6 +155,10 @@ class RelationOtherAgent(models.Model):
     role = models.ForeignKey(AgentType, limit_choices_to={"level": "Type of Involvement"}, on_delete=models.RESTRICT)
     updated = models.DateField(auto_now=True)
 
+    class Meta:
+        verbose_name = "Relation Cult Manifestation / Agent (Involvement)"
+        verbose_name_plural = "Relations Cult Manifestation / Agent (Involvement)"
+
 
 class RelationDigitalResource(EntityMixin):
     cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
@@ -291,8 +295,7 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
     in_parish = models.BooleanField(help_text="Is cult located in a parish?")
     parent = models.ForeignKey("self", on_delete=models.SET_NULL,
                                null=True, blank=True, related_name="cult_children")
-    associated = models.ForeignKey("self", on_delete=models.SET_NULL,
-                                   null=True, blank=True, related_name="cult_associated")    
+    associated = models.ManyToManyField("self", null=True, blank=True, related_name="cult_associated")
     cult_uncertainty = models.BooleanField(null=True, help_text="Is cult uncertain?")
     type_uncertainty = models.BooleanField(null=True, help_text="Is type uncertain?")
     cult_type = models.ForeignKey(CultType, on_delete=models.RESTRICT,

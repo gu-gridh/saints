@@ -261,6 +261,8 @@ class CultSerializer(serializers.ModelSerializer):
     place = PlaceMiniSerializer(read_only=True)
     cult_type = CultTypeSerializer(read_only=True)
     quote = QuoteSerializer(read_only=True, many=True)
+    parent = CultMiniSerializer(read_only=True)
+    associated = CultMiniSerializer(read_only=True, many=True)
     relation_cult_agent = AgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
     relation_other_agent = RelationOtherAgentSerializer(read_only=True, many=True, source='relationotheragent_set')
     relation_other_place = RelationOtherPlaceSerializer(read_only=True, many=True, source='relationotherplace_set')

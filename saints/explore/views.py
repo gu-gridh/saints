@@ -293,7 +293,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             # always filter out child places
             queryset = queryset.filter(parent__isnull=True).order_by('name')
 
-            if zoom is not None and zoom < 13:
+            if zoom is not None and zoom != 'null' and zoom < 13:
                 if zoom < 9:
                     queryset = queryset.filter(place_type__parent__in=[1,2])
                 elif zoom < 11:

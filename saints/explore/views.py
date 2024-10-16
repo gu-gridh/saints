@@ -290,8 +290,6 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 queryset = queryset.filter(relation_cult_place__relation_cult_agent__in=agentset).distinct()
 
         elif layer == 'place':
-            # always filter out child places
-            queryset = queryset.filter(parent__isnull=True).order_by('name')
 
             if zoom is not None and zoom != 'null' and zoom < 13:
                 if zoom < 9:
@@ -329,6 +327,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             return AgentMapSerializer
 
     filter_backends = [InBBoxFilter, filters.SearchFilter]
+    search_fields = ['name']
     bbox_filter_field = 'geometry'
 
     # Specialized pagination

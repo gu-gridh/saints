@@ -204,10 +204,15 @@ class CultTypeSerializer(serializers.ModelSerializer):
 
 
 class IconicMiniSerializer(serializers.ModelSerializer):
+    additional = serializers.SerializerMethodField()
+
+    def get_additional(self, obj):
+        additional = Iconographic.objects.all().filter(card=obj.card, volume=obj.volume).exclude(id=obj.id).values('filename')
+        return [name['filename'] for name in additional]
 
     class Meta:
         model = Iconographic
-        fields = ['id', 'motif2', 'filename', 'uri']
+        fields = ['id', 'motif2', 'filename', 'uri', 'additional']
 
 
 class CultRelationSerializer(serializers.ModelSerializer):

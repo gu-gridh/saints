@@ -171,7 +171,7 @@ class PlaceMapSerializer(GeoFeatureModelSerializer):
         new_properties = {}
 
         for key, value in properties.items():
-            if isinstance(value, dict):
+            if isinstance(value, dict) and key != "ids":
                 for k2, val2 in value.items():
                     new_key = key + "_" + k2
                     new_properties[new_key] = val2
@@ -352,10 +352,17 @@ class CultMapSerializer(PlaceMapSerializer):
         type = self.context['request'].query_params.get('ids')
         if type is not None:
             types = type.split(',')
-            ids = obj.relation_cult_place.all().filter(cult_type__in=types).values('id')
+            ids = obj.relation_cult_place.all().filter(cult_type__in=types).values('id', 'cult_type')
         else:
-            ids = obj.relation_cult_place.all().values('id')
-        return [id['id'] for id in ids]
+            ids = obj.relation_cult_place.all().values('id', 'cult_type')
+        res = {}
+        for id in ids:
+            cult_type = id['cult_type']
+            if cult_type in res:
+                res[cult_type] += 1
+            elif cult_type is not None:
+                res[cult_type] = 1
+        return res
 
     class Meta:
         model = Place
@@ -367,8 +374,20 @@ class AgentMapSerializer(PlaceMapSerializer):
     ids = serializers.SerializerMethodField()
 
     def get_ids(self, obj):
-        ids = obj.relation_cult_place.all().values('id')
-        return [id['id'] for id in ids]
+        type = self.context['request'].query_params.get('ids')
+        if type is not None:
+            types = type.split(',')
+            ids = obj.relation_cult_place.filter(relationcultagent__agent__agent_type__in=types).values('relationcultagent__agent__id', 'relationcultagent__agent__agent_type')
+        else:
+            ids = obj.relation_cult_place.all().values('relationcultagent__agent__id', 'relationcultagent__agent__agent_type')
+        res = {}
+        for id in ids:
+            agent_type = id['relationcultagent__agent__agent_type']
+            if agent_type in res:
+                res[agent_type] += 1
+            elif agent_type is not None:
+                res[agent_type] = 1
+        return res
 
     class Meta:
         model = Place

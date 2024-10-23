@@ -9,3 +9,4 @@ django-filter<25
 django-ckeditor
 gunicorn==22.0.0
 nh3<1.0
+requests<2.33

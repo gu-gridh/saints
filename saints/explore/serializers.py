@@ -6,6 +6,7 @@ from .models import Agent, AgentType, AgentName, Place, PlaceName, PlaceType, \
     OrganizationType, RelationCultAgent, RelationOffice, \
     RelationDigitalResource, Iconographic, RelationMBResource, \
     RelationOtherAgent, RelationOtherPlace
+import requests
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -95,10 +96,36 @@ class DigitalResourceRelationSerializer(serializers.ModelSerializer):
 
 
 class MBResourceRelationSerializer(serializers.ModelSerializer):
+    samsoek = serializers.SerializerMethodField()
+
+    def get_samsoek(self, obj):
+        res = {'images': [], 'name': '', 'main_thumb': ''}
+        parts = obj.resource_uri.split('/')
+        id = parts.pop()
+        json_uri = '/'.join(parts) + '/jsonld/' + id
+        response = requests.get(json_uri, timeout=10)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            return print("Error: " + str(e))
+
+        json_obj = response.json()
+        for item in json_obj['@graph']:
+            if item['@type'] == 'Image':
+                res['images'].append({'filename': item['lowresSource'], 'thumbnail': item['thumbnailSource']})
+            elif item['@type'] == 'ItemName':
+                res['name'] = item['name'].title()
+            elif item['@type'] == 'Entity':
+                res['main_thumb'] = item['thumbnail']
+        # find higher resolution version
+        for image in res['images']:
+            if image['thumbnail'] == res['main_thumb']:
+                res['main_thumb'] = image['filename']
+        return res
 
     class Meta:
         model = RelationMBResource
-        fields = ['resource_uri']
+        fields = ['resource_uri', 'samsoek']
 
 
 class PlaceTypeSerializer(serializers.ModelSerializer):
@@ -207,8 +234,8 @@ class IconicMiniSerializer(serializers.ModelSerializer):
     additional = serializers.SerializerMethodField()
 
     def get_additional(self, obj):
-        additional = Iconographic.objects.all().filter(card=obj.card, volume=obj.volume).exclude(id=obj.id).values('filename')
-        return [name['filename'] for name in additional]
+        additional = Iconographic.objects.all().filter(card=obj.card, volume=obj.volume).exclude(id=obj.id).values('id', 'motif2', 'filename', 'uri')
+        return additional
 
     class Meta:
         model = Iconographic
@@ -353,7 +380,6 @@ class CultMapSerializer(PlaceMapSerializer):
     ids = serializers.SerializerMethodField()
 
     def get_ids(self, obj):
-        # print(self.context['view'])
         type = self.context['request'].query_params.get('ids')
         if type is not None and type != 'null':
             types = type.split(',')

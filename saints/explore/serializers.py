@@ -350,7 +350,7 @@ class CultMapSerializer(PlaceMapSerializer):
     def get_ids(self, obj):
         # print(self.context['view'])
         type = self.context['request'].query_params.get('ids')
-        if type is not None:
+        if type is not None and type != 'null':
             types = type.split(',')
             ids = obj.relation_cult_place.all().filter(cult_type__in=types).values('id', 'cult_type')
         else:
@@ -375,7 +375,7 @@ class AgentMapSerializer(PlaceMapSerializer):
 
     def get_ids(self, obj):
         type = self.context['request'].query_params.get('ids')
-        if type is not None:
+        if type is not None and type != 'null':
             types = type.split(',')
             ids = obj.relation_cult_place.filter(relationcultagent__agent__agent_type__in=types).values('relationcultagent__agent__id', 'relationcultagent__agent__agent_type')
         else:

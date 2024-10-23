@@ -225,12 +225,13 @@ class CultRelationSerializer(serializers.ModelSerializer):
 
 
 class RelationOtherAgentSerializer(serializers.ModelSerializer):
-    agent = AgentMiniSerializer(read_only=True)
+    id = serializers.ReadOnlyField(source='agent.id')
+    name = serializers.ReadOnlyField(source='agent.name')
     role = AgentTypeSerializer(read_only=True)
 
     class Meta:
         model = RelationOtherAgent
-        fields = ['agent', 'agent_uncertainty', 'role']
+        fields = ['id', 'name', 'agent_uncertainty', 'role']
 
 
 class RelationOtherPlaceSerializer(serializers.ModelSerializer):
@@ -268,12 +269,16 @@ class CultSerializer(serializers.ModelSerializer):
     quote = QuoteSerializer(read_only=True, many=True)
     parent = CultMiniSerializer(read_only=True)
     associated = CultMiniSerializer(read_only=True, many=True)
-    relation_cult_agent = AgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
+    relation_cult_agent = serializers.SerializerMethodField() # AgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
     relation_other_agent = RelationOtherAgentSerializer(read_only=True, many=True, source='relationotheragent_set')
     relation_other_place = RelationOtherPlaceSerializer(read_only=True, many=True, source='relationotherplace_set')
     relation_digital_resource = DigitalResourceRelationSerializer(read_only=True, many=True, source='relationdigitalresource_set')
     relation_mb_resource = MBResourceRelationSerializer(read_only=True, many=True, source='relationmbresource_set')
     relation_iconographic = IconicMiniSerializer(read_only=True, many=True)
+
+    def get_relation_cult_agent(self, obj):
+        relations = obj.relationcultagent_set.all().order_by('agent_alternative')
+        return AgentRelationSerializer(relations, read_only=True, many=True).data
 
     class Meta:
         model = Cult

@@ -197,6 +197,7 @@ class PlaceTypesViewSet(OrderingMixin):
         return queryset
     serializer_class = PlaceTypeSerializer
     pagination_class = LargeResultsSetPagination
+    search_fields = ['name','name_sv','name_fi']
 
 
 class CultTypesViewSet(OrderingMixin):
@@ -216,6 +217,7 @@ class CultTypesViewSet(OrderingMixin):
         return queryset.order_by('name')
     serializer_class = CultTypeSerializer
     pagination_class = LargeResultsSetPagination
+    search_fields = ['name', 'name_sv', 'name_fi']
 
 
 class AgentTypesViewSet(OrderingMixin):
@@ -236,6 +238,7 @@ class AgentTypesViewSet(OrderingMixin):
         return queryset.order_by('name')
     serializer_class = AgentTypeSerializer
     pagination_class = LargeResultsSetPagination
+    search_fields = ['name', 'name_sv', 'name_fi']
 
 
 class MapViewSet(viewsets.ReadOnlyModelViewSet):

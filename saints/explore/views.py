@@ -90,14 +90,18 @@ class AgentNamesViewSet(OrderingMixin):
 
 class CultViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
-        cult_type = self.request.query_params.get('type')
-        uncertainty = self.request.query_params.get('uncertainty')
-        extant = self.request.query_params.get('extant')
+        options = self.request.query_params
+        cult_type = options.get('type')
+        uncertainty = options.get('uncertainty')
+        extant = options.get('extant')
+        source = options.get('source')
         queryset = models.Cult.objects.all()
         if uncertainty is not None:
             queryset = queryset.filter(place_uncertainty=uncertainty)
         if extant is not None:
             queryset = queryset.filter(extant=extant)
+        if source is not None:
+            queryset = queryset.filter(quote__source_id=source)
         if cult_type is not None:
             types = cult_type.split(',')
             queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))
@@ -174,10 +178,11 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset.order_by('name')
 
     serializer_class = SourceSerializer
+    pagination_class = LargeResultsSetPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'title', 'author']
-    ordering_fields = ['name', 'author']
-    ordering = ['name']
+    ordering_fields = ['title', 'author']
+    ordering = ['title']
 
 
 class PlaceTypesViewSet(OrderingMixin):

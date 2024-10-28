@@ -43,7 +43,7 @@ class AgentsViewSet(OrderingMixin):
             else:
                 queryset = queryset.filter(agent_type__in=types).order_by('name')
         queryset = queryset.prefetch_related('relation_cult_agent')
-        return queryset
+        return queryset.distinct()
 
     def get_serializer_class(self):
         mini = self.request.query_params.get('mini')

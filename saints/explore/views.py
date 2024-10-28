@@ -276,6 +276,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 agentset = models.Agent.objects.all()
                 gender = options.get('gender')
+                agents = options.get('agents')
                 operator = options.get('op')
                 if (layer == 'saints'):
                     agentset = agentset.filter(saint=True).order_by('name')
@@ -290,6 +291,13 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                             agentset = agentset.filter(agent_type=t)
                     else:
                         agentset = agentset.filter(agent_type__in=types)
+                if agents is not None and agents != 'null':
+                    agentids = agents.split(',')
+                    if operator == "AND" and len(agentids) < 5:
+                        for id in agentids:
+                            agentset = agentset.filter(id=id)
+                    else:
+                        agentset = agentset.filter(id__in=agentids)
                 queryset = queryset.filter(relation_cult_place__relation_cult_agent__in=agentset).distinct()
 
         elif layer == 'place':

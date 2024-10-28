@@ -198,7 +198,7 @@ class PlaceMapSerializer(GeoFeatureModelSerializer):
         new_properties = {}
 
         for key, value in properties.items():
-            if isinstance(value, dict) and key != "ids":
+            if isinstance(value, dict) and (key != "ids" and key != "agents"):
                 for k2, val2 in value.items():
                     new_key = key + "_" + k2
                     new_properties[new_key] = val2
@@ -403,14 +403,15 @@ class CultMapSerializer(PlaceMapSerializer):
 
 class AgentMapSerializer(PlaceMapSerializer):
     ids = serializers.SerializerMethodField()
+    agents = serializers.SerializerMethodField()
 
     def get_ids(self, obj):
         type = self.context['request'].query_params.get('ids')
         if type is not None and type != 'null':
             types = type.split(',')
-            ids = obj.relation_cult_place.filter(relationcultagent__agent__agent_type__in=types).values('relationcultagent__agent__id', 'relationcultagent__agent__agent_type')
+            ids = obj.relation_cult_place.filter(relationcultagent__agent__agent_type__in=types).values('relationcultagent__agent_id', 'relationcultagent__agent__agent_type')
         else:
-            ids = obj.relation_cult_place.all().values('relationcultagent__agent__id', 'relationcultagent__agent__agent_type')
+            ids = obj.relation_cult_place.all().values('relationcultagent__agent_id', 'relationcultagent__agent__agent_type')
         res = {}
         for id in ids:
             agent_type = id['relationcultagent__agent__agent_type']
@@ -420,7 +421,23 @@ class AgentMapSerializer(PlaceMapSerializer):
                 res[agent_type] = 1
         return res
 
+    def get_agents(self, obj):
+        agent = self.context['request'].query_params.get('agents')
+        if agent is not None and agent != 'null':
+            agents = agent.split(',')
+            ids = obj.relation_cult_place.filter(relationcultagent__agent_id__in=agents).values('relationcultagent__agent_id')
+        else:
+            ids = obj.relation_cult_place.all().values('relationcultagent__agent_id')
+        res = {}
+        for id in ids:
+            agent_id = id['relationcultagent__agent_id']
+            if agent_id in res:
+                res[agent_id] += 1
+            elif agent_id is not None:
+                res[agent_id] = 1
+        return res
+
     class Meta:
         model = Place
-        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
+        fields = ['id', 'name', 'place_type', 'ids', 'agents', 'geometry']
         geo_field = 'geometry'

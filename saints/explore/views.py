@@ -9,8 +9,7 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
     SourceSerializer, OrganizationSerializer, PlaceMiniSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
-    CultMapSerializer, AgentMapSerializer, CultMiniSerializer, \
-    IconicMiniSerializer
+    CultMapSerializer, AgentMapSerializer, CultMiniSerializer
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -256,6 +255,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             zoom = int(zoom)
         range = options.get('range')
         bbox = options.get('bbox')
+        search = options.get('search')
 
         queryset = models.Place.objects.all()
 
@@ -265,7 +265,10 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 queryset = queryset.filter(relation_cult_place__minyear__gte=years[0],
                                            relation_cult_place__maxyear__lte=years[1])
             if layer == 'cult':
-                cultset = models.Cult.objects.all()
+                if search is not None:
+                    cultset = models.Cult.objects.filter(place__name__icontains=search)
+                else:
+                    cultset = models.Cult.objects.all()
                 uncertainty = options.get('uncertainty')
                 extant = options.get('extant')
                 if uncertainty is not None:
@@ -279,7 +282,10 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                                              | Q(cult_type__parent__parent__in=types))
                 queryset = queryset.filter(relation_cult_place__in=cultset).distinct()
             else:
-                agentset = models.Agent.objects.all()
+                if search is not None:
+                    agentset = models.Agent.objects.filter(Q(name__icontains=search) | Q(agentname__name__icontains=search))
+                else:
+                    agentset = models.Agent.objects.all()
                 gender = options.get('gender')
                 agents = options.get('agents')
                 operator = options.get('op')
@@ -307,7 +313,8 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                     queryset = queryset.filter(relation_cult_place__relationotheragent__agent_id__in=agentset).distinct()
 
         elif layer == 'place':
-
+            if search is not None:
+                queryset = queryset.filter(name__icontains=search)
             if zoom is not None and zoom != 'null' and zoom < 13:
                 if zoom < 9:
                     queryset = queryset.filter(place_type__parent__in=[1,2])
@@ -344,7 +351,6 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             return AgentMapSerializer
 
     filter_backends = [InBBoxFilter, filters.SearchFilter]
-    search_fields = ['name']
     bbox_filter_field = 'geometry'
 
     # Specialized pagination

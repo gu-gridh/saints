@@ -42,7 +42,7 @@ class AgentsViewSet(OrderingMixin):
                 queryset = queryset.order_by('name')
             else:
                 queryset = queryset.filter(agent_type__in=types).order_by('name')
-        queryset = queryset.prefetch_related('relation_cult_agent')
+        # queryset = queryset.prefetch_related('relation_cult_agent')
         return queryset.distinct()
 
     def get_serializer_class(self):
@@ -283,10 +283,6 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 gender = options.get('gender')
                 agents = options.get('agents')
                 operator = options.get('op')
-                if (layer == 'saints'):
-                    agentset = agentset.filter(saint=True).order_by('name')
-                else:
-                    agentset = agentset.filter(saint=False).order_by('name')
                 if gender is not None and gender != '':
                     agentset = agentset.filter(gender=gender).order_by('name')
                 if ids is not None and ids != 'null':
@@ -303,7 +299,12 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                             agentset = agentset.filter(id=id)
                     else:
                         agentset = agentset.filter(id__in=agentids)
-                queryset = queryset.filter(relation_cult_place__relation_cult_agent__in=agentset).distinct()
+                if (layer == 'saints'):
+                    agentset = agentset.filter(saint=True).order_by('name')
+                    queryset = queryset.filter(relation_cult_place__relation_cult_agent__in=agentset).distinct()
+                elif (layer == 'people'):
+                    agentset = agentset.filter(saint=False).order_by('name')
+                    queryset = queryset.filter(relation_cult_place__relationotheragent__agent_id__in=agentset).distinct()
 
         elif layer == 'place':
 

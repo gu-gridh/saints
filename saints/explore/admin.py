@@ -54,7 +54,7 @@ class ModelAdmin(admin.ModelAdmin):
 
 @admin.register(AgentName)
 class AgentNameAdmin(ModelAdmin):
-    list_display = ["id", "name", "language", "updated"]
+    list_display = ["id", "name", "language", "not_before", "updated"]
     search_fields = ["name"]
     autocomplete_fields = ["agent"]
 
@@ -66,7 +66,7 @@ class AgentNameInline(admin.TabularInline):
 
 @admin.register(OrganizationName)
 class OrganizationNameAdmin(ModelAdmin):
-    list_display = ["id", "name", "language", "updated"]
+    list_display = ["id", "name", "language", "not_before", "updated"]
     search_fields = ["name"]
     autocomplete_fields = ["organization"]
 
@@ -78,7 +78,7 @@ class OrganizationNameInline(admin.TabularInline):
 
 @admin.register(PlaceName)
 class PlaceNameAdmin(ModelAdmin):
-    list_display = ["id", "name", "language", "updated"]
+    list_display = ["id", "name", "language", "not_before", "updated"]
     search_fields = ["name"]
     autocomplete_fields = ["place"]
 
@@ -90,7 +90,7 @@ class PlaceNameInline(admin.TabularInline):
 
 @admin.register(ParishName)
 class ParishNameAdmin(ModelAdmin):
-    list_display = ["id", "name", "language", "updated"]
+    list_display = ["id", "name", "language", "not_before", "updated"]
     search_fields = ["name"]
     autocomplete_fields = ["parish"]
 
@@ -187,7 +187,7 @@ class AgentAdmin(EntityAdminMixin, ModelAdmin):
     #formfield_overrides = {
     #    models.TextField: {"widget": richtext_widget},
     #}
-    list_display = ["id", "name", "not_before", "saint", "updated"]
+    list_display = ["id", "name", "gender", "not_before", "saint", "updated"]
     search_fields = ["id", "name", "agentname__name"]
     filter_horizontal = ["agent_type"]
     fieldsets = [
@@ -298,7 +298,7 @@ class PlaceAdmin(EntityAdminMixin, ModelAdmin, gis_admin.GISModelAdmin):
 @admin.register(Cult)
 class CultAdmin(EntityAdminMixin, ModelAdmin):
     model = Cult
-    list_display = ["id", "cult_type", "place", "updated"]
+    list_display = ["id", "cult_type", "place", "time_period", "updated"]
     search_fields = ["id", "cult_type__name", "place__name"]
     autocomplete_fields = ["place", "parent", "associated", "cult_type", "quote"]
     raw_id_fields = ["relation_cult_agent", "quote", "relation_other_place"]
@@ -350,7 +350,10 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
     ordering = ["place__name"]
 
     def children(self, obj):
-        return obj.cult_children.all()
+        children = obj.cult_children.all()
+        print(children)
+        children_list = [child.__str__() for child in children]
+        return "; ".join(children_list)
 
 
 @admin.register(Organization)

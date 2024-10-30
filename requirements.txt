@@ -10,3 +10,5 @@ django-ckeditor
 gunicorn==22.0.0
 nh3<1.0
 requests<2.33
+# dev requirements
+django-debug-toolbar<4.5

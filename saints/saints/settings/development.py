@@ -10,12 +10,21 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
-from saints.settings.common import *
+from .common import *
+from .common import INSTALLED_APPS
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+INSTALLED_APPS += ["debug_toolbar"]
+
+MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
 
 DATABASES = {
     'default': {

@@ -9,7 +9,8 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
     SourceSerializer, OrganizationSerializer, PlaceMiniSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
-    CultMapSerializer, AgentMapSerializer, CultMiniSerializer
+    CultMapSerializer, SaintsMapSerializer, PeopleMapSerializer, \
+    CultMiniSerializer
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -253,24 +254,23 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
         zoom = options.get('zoom')
         if zoom is not None and zoom.isnumeric():
             zoom = int(zoom)
-        range = options.get('range')
         bbox = options.get('bbox')
         search = options.get('search')
 
-        queryset = models.Place.objects.all()
+        queryset = models.Place.objects.all().order_by('name')
 
         if layer != 'place' and layer is not None:
-            if range is not None and range != 'undefined':
-                years = range.split(',')
-                queryset = queryset.filter(relation_cult_place__minyear__gte=years[0],
-                                           relation_cult_place__maxyear__lte=years[1])
+            queryset = queryset.prefetch_related("relation_cult_place")
             if layer == 'cult':
+                uncertainty = options.get('uncertainty')
+                extant = options.get('extant')
+
                 if search is not None:
                     cultset = models.Cult.objects.filter(place__name__icontains=search)
                 else:
                     cultset = models.Cult.objects.all()
-                uncertainty = options.get('uncertainty')
-                extant = options.get('extant')
+                #cultset = cultset.select_related("cult_type")
+                #cultset = cultset.select_related("cult_type__parent")
                 if uncertainty is not None:
                     cultset = cultset.filter(place_uncertainty=uncertainty)
                 if extant is not None:
@@ -282,13 +282,14 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                                              | Q(cult_type__parent__parent__in=types))
                 queryset = queryset.filter(relation_cult_place__in=cultset).distinct()
             else:
+                gender = options.get('gender')
+                agents = options.get('agents')
+                operator = options.get('op')
+                range = options.get('range')
                 if search is not None:
                     agentset = models.Agent.objects.filter(Q(name__icontains=search) | Q(agentname__name__icontains=search))
                 else:
                     agentset = models.Agent.objects.all()
-                gender = options.get('gender')
-                agents = options.get('agents')
-                operator = options.get('op')
                 if gender is not None and gender != '':
                     agentset = agentset.filter(gender=gender).order_by('name')
                 if ids is not None and ids != 'null':
@@ -302,7 +303,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                     agentids = agents.split(',')
                     if operator == "AND" and len(agentids) < 5:
                         for id in agentids:
-                            agentset = agentset.filter(id=id)
+                            agentset = agentset.get(id=id)
                     else:
                         agentset = agentset.filter(id__in=agentids)
                 if (layer == 'saints'):
@@ -312,10 +313,17 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                     agentset = agentset.filter(saint=False).order_by('name')
                     queryset = queryset.filter(relation_cult_place__relationotheragent__agent_id__in=agentset).distinct()
 
+            if range is not None and range != 'undefined':
+                years = range.split(',')
+                queryset = queryset.filter(relation_cult_place__minyear__gte=years[0],
+                                           relation_cult_place__maxyear__lte=years[1])
+
         elif layer == 'place':
+            # optimize parent queries
+            queryset = queryset.select_related("place_type__parent")
             if search is not None:
-                queryset = queryset.filter(name__icontains=search)
-            if zoom is not None and zoom != 'null' and zoom < 13:
+                queryset = queryset.filter(name__icontains=search).order_by('name')
+            if zoom is not None and zoom != 'null' and zoom < 13 and ids == 'null':
                 if zoom < 9:
                     queryset = queryset.filter(place_type__parent__in=[1,2])
                 elif zoom < 11:
@@ -336,9 +344,8 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 float(bbox[2]), float(bbox[3]),
             ]
             bounding_box = Envelope((bbox_coords))
-            queryset = queryset.filter(geometry__within=bounding_box.wkt)
+            queryset = queryset.filter(geometry__within=bounding_box.wkt).order_by('name')
 
-        queryset = queryset.order_by('name')
         return queryset
 
     def get_serializer_class(self):
@@ -347,8 +354,10 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             return PlaceMapSerializer
         elif layer == 'cult':
             return CultMapSerializer
+        elif layer == 'saints':
+            return SaintsMapSerializer
         else:
-            return AgentMapSerializer
+            return PeopleMapSerializer
 
     filter_backends = [InBBoxFilter, filters.SearchFilter]
     bbox_filter_field = 'geometry'

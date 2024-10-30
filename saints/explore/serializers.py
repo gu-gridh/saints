@@ -401,7 +401,7 @@ class CultMapSerializer(PlaceMapSerializer):
         geo_field = 'geometry'
 
 
-class AgentMapSerializer(PlaceMapSerializer):
+class SaintsMapSerializer(PlaceMapSerializer):
     ids = serializers.SerializerMethodField()
     agents = serializers.SerializerMethodField()
 
@@ -409,9 +409,9 @@ class AgentMapSerializer(PlaceMapSerializer):
         type = self.context['request'].query_params.get('ids')
         if type is not None and type != 'null':
             types = type.split(',')
-            ids = obj.relation_cult_place.filter(relationcultagent__agent__agent_type__in=types).values('relationcultagent__agent_id', 'relationcultagent__agent__agent_type')
+            ids = obj.relation_cult_place.filter(relationcultagent__agent__agent_type__in=types).values('relationcultagent__agent__agent_type')
         else:
-            ids = obj.relation_cult_place.all().values('relationcultagent__agent_id', 'relationcultagent__agent__agent_type')
+            ids = obj.relation_cult_place.all().values('relationcultagent__agent__agent_type')
         res = {}
         for id in ids:
             agent_type = id['relationcultagent__agent__agent_type']
@@ -431,6 +431,48 @@ class AgentMapSerializer(PlaceMapSerializer):
         res = {}
         for id in ids:
             agent_id = id['relationcultagent__agent_id']
+            if agent_id in res:
+                res[agent_id] += 1
+            elif agent_id is not None:
+                res[agent_id] = 1
+        return res
+
+    class Meta:
+        model = Place
+        fields = ['id', 'name', 'place_type', 'ids', 'agents', 'geometry']
+        geo_field = 'geometry'
+
+
+class PeopleMapSerializer(PlaceMapSerializer):
+    ids = serializers.SerializerMethodField()
+    agents = serializers.SerializerMethodField()
+
+    def get_ids(self, obj):
+        type = self.context['request'].query_params.get('ids')
+        if type is not None and type != 'null':
+            types = type.split(',')
+            ids = obj.relation_cult_place.filter(relationotheragent__agent__agent_type__in=types).values('relationotheragent__agent__agent_type')
+        else:
+            ids = obj.relation_cult_place.all().values('relationotheragent__agent__agent_type')
+        res = {}
+        for id in ids:
+            agent_type = id['relationotheragent__agent__agent_type']
+            if agent_type in res:
+                res[agent_type] += 1
+            elif agent_type is not None:
+                res[agent_type] = 1
+        return res
+
+    def get_agents(self, obj):
+        agent = self.context['request'].query_params.get('agents')
+        if agent is not None and agent != 'null':
+            agents = agent.split(',')
+            ids = obj.relation_cult_place.filter(relationotheragent__agent_id__in=agents).values('relationotheragent__agent_id')
+        else:
+            ids = obj.relation_cult_place.all().values('relationotheragent__agent_id')
+        res = {}
+        for id in ids:
+            agent_id = id['relationotheragent__agent_id']
             if agent_id in res:
                 res[agent_id] += 1
             elif agent_id is not None:

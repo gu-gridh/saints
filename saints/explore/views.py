@@ -28,21 +28,28 @@ class OrderingMixin(viewsets.ReadOnlyModelViewSet):
 # ViewSets define the view behavior.
 class AgentsViewSet(OrderingMixin):
     def get_queryset(self):
-        gender = self.request.query_params.get('gender')
-        agent_type = self.request.query_params.get('type')
-        operator = self.request.query_params.get('op')
-        queryset = models.Agent.objects.all().order_by('name')
+        options = self.request.query_params
+        gender = options.get('gender')
+        agent_type = options.get('type')
+        operator = options.get('op')
+        mini = options.get('mini')
+        queryset = models.Agent.objects.all().prefetch_related("agent_type").order_by('name')
+        if mini is None:
+            queryset = queryset.prefetch_related("agentname_set").prefetch_related("relationcultagent_set__cult__cult_type").prefetch_related("relationcultagent_set__cult__place").prefetch_related("feastday_set")
+            queryset = queryset.select_related("created").select_related("modified")
+            queryset = queryset.prefetch_related("relationoffice_set__organization").prefetch_related("relationoffice_set__role")
+            queryset = queryset.prefetch_related("relationotheragent_set__role").prefetch_related("relationotheragent_set__cult__cult_type").prefetch_related("relationotheragent_set__cult__place").prefetch_related("relationotheragent_set__cult__relationcultagent_set")
         if gender is not None and gender != '':
             queryset = queryset.filter(gender=gender).order_by('name')
         if agent_type is not None:
             types = agent_type.split(',')
             if operator == "AND" and len(types) < 5:
                 for t in types:
-                    queryset = queryset.filter(agent_type=t)
+                    if queryset:
+                        queryset = queryset.filter(agent_type=t)
                 queryset = queryset.order_by('name')
             else:
                 queryset = queryset.filter(agent_type__in=types).order_by('name')
-        # queryset = queryset.prefetch_related('relation_cult_agent')
         return queryset.distinct()
 
     def get_serializer_class(self):
@@ -77,7 +84,7 @@ class PeopleViewSet(AgentsViewSet):
 
 
 class OrganizationViewSet(OrderingMixin):
-    queryset = models.Organization.objects.all()
+    queryset = models.Organization.objects.select_related("organization_type").prefetch_related("organizationname_set").all()
     serializer_class = OrganizationSerializer
     search_fields = ['name']
 
@@ -95,7 +102,8 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
         uncertainty = options.get('uncertainty')
         extant = options.get('extant')
         source = options.get('source')
-        queryset = models.Cult.objects.all()
+        queryset = models.Cult.objects.select_related("cult_type").select_related("cult_type__parent").select_related("place").all()
+        queryset = queryset.prefetch_related("relationcultagent_set__agent")
         if uncertainty is not None:
             queryset = queryset.filter(place_uncertainty=uncertainty)
         if extant is not None:
@@ -279,20 +287,17 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
         bbox = options.get('bbox')
         search = options.get('search')
 
-        queryset = models.Place.objects.all().order_by('name')
+        queryset = models.Place.objects.all().prefetch_related("place_type").order_by('name')
 
         if layer != 'place' and layer is not None:
-            queryset = queryset.prefetch_related("relation_cult_place")
+            range = options.get('range')
             if layer == 'cult':
                 uncertainty = options.get('uncertainty')
                 extant = options.get('extant')
-
                 if search is not None:
                     cultset = models.Cult.objects.filter(place__name__icontains=search)
                 else:
                     cultset = models.Cult.objects.all()
-                #cultset = cultset.select_related("cult_type")
-                #cultset = cultset.select_related("cult_type__parent")
                 if uncertainty is not None:
                     cultset = cultset.filter(place_uncertainty=uncertainty)
                 if extant is not None:
@@ -307,7 +312,6 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 gender = options.get('gender')
                 agents = options.get('agents')
                 operator = options.get('op')
-                range = options.get('range')
                 if search is not None:
                     agentset = models.Agent.objects.filter(Q(name__icontains=search) | Q(agentname__name__icontains=search))
                 else:
@@ -341,8 +345,6 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                                            relation_cult_place__maxyear__lte=years[1])
 
         elif layer == 'place':
-            # optimize parent queries
-            queryset = queryset.select_related("place_type__parent")
             if search is not None:
                 queryset = queryset.filter(name__icontains=search).order_by('name')
             if zoom is not None and zoom != 'null' and zoom < 13 and ids == 'null':

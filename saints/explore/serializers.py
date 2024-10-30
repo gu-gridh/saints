@@ -149,6 +149,13 @@ class SourceSerializer(serializers.ModelSerializer):
         exclude = ['created', 'modified', 'notes']
 
 
+class QuoteSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Quote
+        exclude = ['created', 'modified', 'notes']
+
+
 class FeastDaySerializer(serializers.ModelSerializer):
 
     class Meta:

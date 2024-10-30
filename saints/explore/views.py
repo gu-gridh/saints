@@ -10,7 +10,7 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     SourceSerializer, OrganizationSerializer, PlaceMiniSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
     CultMapSerializer, SaintsMapSerializer, PeopleMapSerializer, \
-    CultMiniSerializer
+    CultMiniSerializer, QuoteSerializer
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -88,7 +88,7 @@ class AgentNamesViewSet(OrderingMixin):
     search_fields = ['name']
 
 
-class CultViewSet(viewsets.ReadOnlyModelViewSet):
+class CultsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         options = self.request.query_params
         cult_type = options.get('type')
@@ -104,6 +104,7 @@ class CultViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(quote__source_id=source)
         if cult_type is not None:
             types = cult_type.split(',')
+            # queryset = queryset.prefetch_related("cult_type__parent")
             queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))
         return queryset.order_by('place__name')
 
@@ -133,7 +134,8 @@ class PlacesViewSet(OrderingMixin):
         Optionally restrict the returned places to a type
         by filtering against a `type` query parameter in the URL.
         """
-        queryset = models.Place.objects.all()
+        # optimize for mini search
+        queryset = models.Place.objects.select_related("place_type").select_related("parish").select_related("parish__medival_organization").all()
         place_type = self.request.query_params.get('type')
         if place_type is not None:
             types = place_type.split(',')
@@ -183,6 +185,16 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['name', 'title', 'author']
     ordering_fields = ['title', 'author']
     ordering = ['title']
+
+
+class QuotesViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = models.Quote.objects.select_related("source").all()
+    serializer_class = QuoteSerializer
+    pagination_class = LargeResultsSetPagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['quote_transcription', 'translation']
+    ordering_fields = ['quote_transcription']
+    ordering = ['quote_transcription']
 
 
 class PlaceTypesViewSet(OrderingMixin):

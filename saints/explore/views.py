@@ -188,7 +188,17 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class QuotesViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = models.Quote.objects.select_related("source").all()
+    def get_queryset(self):
+        """
+        Optionally restrict the returned quotes against a `source`
+        query parameter in the URL.
+        """
+        queryset = models.Quote.objects.select_related("source").all()
+        source = self.request.query_params.get('source')
+        if source is not None:
+            queryset = queryset.filter(source=source)
+        return queryset.order_by('page')
+
     serializer_class = QuoteSerializer
     pagination_class = LargeResultsSetPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]

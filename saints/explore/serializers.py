@@ -170,12 +170,12 @@ class SourceMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
-class QuoteSerializer(serializers.ModelSerializer):
+class QuoteMiniSerializer(serializers.ModelSerializer):
     source = SourceMiniSerializer(read_only=True)
 
     class Meta:
         model = Quote
-        exclude = ['created', 'modified', 'notes']
+        exclude = ['created', 'modified', 'updated', 'notes']
 
 
 class ParishMiniSerializer(serializers.ModelSerializer):
@@ -300,7 +300,7 @@ class CultSerializer(serializers.ModelSerializer):
     modified = UserSerializer(read_only=True)
     place = PlaceMiniSerializer(read_only=True)
     cult_type = CultTypeSerializer(read_only=True)
-    quote = QuoteSerializer(read_only=True, many=True)
+    quote = QuoteMiniSerializer(read_only=True, many=True)
     parent = CultMiniSerializer(read_only=True)
     associated = CultMiniSerializer(read_only=True, many=True)
     relation_cult_agent = serializers.SerializerMethodField() # AgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
@@ -345,6 +345,17 @@ class RelationOtherPlaceCultSerializer(serializers.ModelSerializer):
         fields = ['cult', 'place_uncertainty', 'role']
 
 
+class QuoteSerializer(serializers.ModelSerializer):
+    source = SourceMiniSerializer(read_only=True)
+    cult = CultMiniSerializer(read_only=True, many=True, source='cult_quote')
+
+    class Meta:
+        model = Quote
+        fields = ['id', 'source', 'cult', 'comment', 'not_after', 'not_before',
+                  'date_note', 'page', 'language', 'uri', 'quote_transcription',
+                  'transcribed_by', 'translation', 'translated_by']
+
+
 class AgentSerializer(serializers.ModelSerializer):
     created = UserSerializer(read_only=True)
     modified = UserSerializer(read_only=True)
@@ -356,7 +367,7 @@ class AgentSerializer(serializers.ModelSerializer):
     relation_other_agent = RelationOtherCultSerializer(read_only=True, many=True, source='relationotheragent_set')
 
     def get_agent_names(self, obj):
-        return obj.agentname_set.all().values('name', 'language', 'not_before')
+        return obj.agentname_set.values('name', 'language', 'not_before')
 
     class Meta:
         model = Agent
@@ -369,7 +380,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     parish = ParishMiniSerializer(read_only=True)
     place_type = PlaceTypeMiniSerializer(read_only=True)
     parent = PlaceMiniSerializer(read_only=True)
-    quote = QuoteSerializer(read_only=True, many=True)
+    quote = QuoteMiniSerializer(read_only=True, many=True)
     place_children = PlaceMiniSerializer(read_only=True, many=True)
     relation_cult_place = CultMiniSerializer(read_only=True, many=True)
     relation_other_place = RelationOtherPlaceCultSerializer(read_only=True, many=True, source='relationotherplace_set')

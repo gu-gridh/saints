@@ -10,7 +10,7 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     SourceSerializer, OrganizationSerializer, PlaceMiniSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
     CultMapSerializer, SaintsMapSerializer, PeopleMapSerializer, \
-    CultMiniSerializer, QuoteSerializer
+    CultMiniSerializer, QuoteSerializer, QuoteMiniSerializer
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -202,13 +202,28 @@ class QuotesViewSet(viewsets.ReadOnlyModelViewSet):
         query parameter in the URL.
         """
         queryset = models.Quote.objects.select_related("source").all()
-        source = self.request.query_params.get('source')
+        options = self.request.query_params
+        source = options.get('source')
+        mini = options.get('mini')
         if source is not None:
             queryset = queryset.filter(source=source)
+        if mini is None:
+            queryset = queryset.prefetch_related("cult_quote__place").prefetch_related("cult_quote__cult_type")
         return queryset.order_by('page')
 
-    serializer_class = QuoteSerializer
-    pagination_class = LargeResultsSetPagination
+    def get_serializer_class(self):
+        mini = self.request.query_params.get('mini')
+        if mini is not None:
+            return QuoteMiniSerializer
+        else:
+            return QuoteSerializer
+
+    def get_pagination_class(self):
+        mini = self.request.query_params.get('mini')
+        if mini is not None:
+            return LargeResultsSetPagination
+        return api_settings.DEFAULT_PAGINATION_CLASS
+
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['quote_transcription', 'translation']
     ordering_fields = ['quote_transcription']
@@ -334,6 +349,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                         agentset = agentset.filter(id__in=agentids)
                 if (layer == 'saints'):
                     agentset = agentset.filter(saint=True).order_by('name')
+                    agentset = agentset.prefetch_related("relation_cult_place__relation_cult_agent__agent_type")
                     queryset = queryset.filter(relation_cult_place__relation_cult_agent__in=agentset).distinct()
                 elif (layer == 'people'):
                     agentset = agentset.filter(saint=False).order_by('name')
@@ -385,7 +401,4 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
 
     filter_backends = [InBBoxFilter, filters.SearchFilter]
     bbox_filter_field = 'geometry'
-
-    # Specialized pagination
-    # pagination_class = GeoJsonPagination
-    page_size = 10
+    page_size = 25

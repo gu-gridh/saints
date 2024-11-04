@@ -5,6 +5,7 @@ from . import views
 router = routers.DefaultRouter()
 router.register("saints", views.SaintsViewSet, basename="saints")
 router.register("people", views.PeopleViewSet, basename="people")
+router.register("agents", views.AgentsViewSet, basename="agents")
 router.register("cult", views.CultsViewSet, basename="cult")
 router.register("place", views.PlacesViewSet, basename="place")
 router.register("organization", views.OrganizationViewSet, basename="organization")

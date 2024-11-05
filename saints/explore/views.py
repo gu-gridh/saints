@@ -143,7 +143,7 @@ class PlacesViewSet(OrderingMixin):
         by filtering against a `type` query parameter in the URL.
         """
         # optimize for mini search
-        queryset = models.Place.objects.select_related("place_type").select_related("parish").select_related("parish__medival_organization").all()
+        queryset = models.Place.objects.filter(exclude=False).select_related("place_type").select_related("parish").select_related("parish__medival_organization")
         place_type = self.request.query_params.get('type')
         if place_type is not None:
             types = place_type.split(',')
@@ -302,7 +302,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
         bbox = options.get('bbox')
         search = options.get('search')
 
-        queryset = models.Place.objects.all().prefetch_related("place_type").order_by('name')
+        queryset = models.Place.objects.filter(exclude=False).prefetch_related("place_type").order_by('name')
 
         if layer != 'place' and layer is not None:
             range = options.get('range')

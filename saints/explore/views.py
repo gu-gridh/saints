@@ -102,7 +102,7 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
         uncertainty = options.get('uncertainty')
         extant = options.get('extant')
         source = options.get('source')
-        queryset = models.Cult.objects.select_related("cult_type").select_related("cult_type__parent").select_related("place").all()
+        queryset = models.Cult.objects.select_related("cult_type").select_related("cult_type__parent").select_related("place").select_related("created").select_related("modified").all()
         queryset = queryset.prefetch_related("relationcultagent_set__agent")
         if uncertainty is not None:
             queryset = queryset.filter(place_uncertainty=uncertainty)

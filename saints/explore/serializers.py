@@ -295,6 +295,7 @@ class CultSerializer(serializers.ModelSerializer):
     quote = QuoteMiniSerializer(read_only=True, many=True)
     parent = CultMiniSerializer(read_only=True)
     associated = CultMiniSerializer(read_only=True, many=True)
+    dependent = CultMiniSerializer(read_only=True, many=True, source='cult_children')
     relation_cult_agent = serializers.SerializerMethodField() # AgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
     relation_other_agent = RelationOtherAgentSerializer(read_only=True, many=True, source='relationotheragent_set')
     relation_other_place = RelationOtherPlaceSerializer(read_only=True, many=True, source='relationotherplace_set')

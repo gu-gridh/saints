@@ -149,20 +149,6 @@ class SourceSerializer(serializers.ModelSerializer):
         exclude = ['created', 'modified', 'notes']
 
 
-class QuoteSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Quote
-        exclude = ['created', 'modified', 'notes']
-
-
-class FeastDaySerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = FeastDay
-        fields = ['day', 'type']
-
-
 class SourceMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -171,11 +157,17 @@ class SourceMiniSerializer(serializers.ModelSerializer):
 
 
 class QuoteMiniSerializer(serializers.ModelSerializer):
-    source = SourceMiniSerializer(read_only=True)
 
     class Meta:
         model = Quote
-        exclude = ['created', 'modified', 'updated', 'notes']
+        exclude = ['created', 'modified', 'notes', 'updated']
+
+
+class FeastDaySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = FeastDay
+        fields = ['day', 'type']
 
 
 class ParishMiniSerializer(serializers.ModelSerializer):

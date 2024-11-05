@@ -357,8 +357,10 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
 
             if range is not None and range != 'undefined':
                 years = range.split(',')
-                queryset = queryset.filter(relation_cult_place__minyear__gte=years[0],
-                                           relation_cult_place__maxyear__lte=years[1])
+                minyear = int(years[0])
+                maxyear = int(years[1])
+                queryset = queryset.filter(relation_cult_place__minyear__gte=minyear,
+                                           relation_cult_place__maxyear__lte=maxyear)
 
         elif layer == 'place':
             if search is not None:

@@ -10,7 +10,8 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     SourceSerializer, OrganizationSerializer, PlaceMiniSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
     CultMapSerializer, SaintsMapSerializer, PeopleMapSerializer, \
-    CultMiniSerializer, QuoteSerializer, QuoteMiniSerializer
+    CultMiniSerializer, QuoteSerializer, QuoteMiniSerializer, \
+    PlaceChildrenSerializer
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -143,7 +144,8 @@ class PlacesViewSet(OrderingMixin):
         by filtering against a `type` query parameter in the URL.
         """
         # optimize for mini search
-        queryset = models.Place.objects.filter(exclude=False).select_related("place_type").select_related("parish").select_related("parish__medival_organization")
+        queryset = models.Place.objects.filter(exclude=False).select_related("place_type").select_related("created").select_related("modified").select_related("parish").select_related("parent")
+        queryset = queryset.prefetch_related("relation_cult_place__cult_type")
         place_type = self.request.query_params.get('type')
         if place_type is not None:
             types = place_type.split(',')
@@ -167,6 +169,25 @@ class PlacesViewSet(OrderingMixin):
 
     pagination_class = property(fget=get_pagination_class)
     search_fields = ['name']
+
+
+class PlaceChildrenViewSet(OrderingMixin):
+    def get_queryset(self):
+        """
+        Optionally restrict the returned places to a type
+        by filtering against a `type` query parameter in the URL.
+        """
+        # optimize for mini search
+        queryset = models.Place.objects.filter(exclude=False).select_related("parent").prefetch_related("relation_cult_place")
+        id = self.request.query_params.get('id')
+        if id is not None:
+            queryset = queryset.filter(parent=id).order_by('name')
+        else:
+            queryset = queryset.order_by('name')
+        return queryset
+
+    serializer_class = PlaceChildrenSerializer
+    pagination_class = LargeResultsSetPagination
 
 
 class SourcesViewSet(viewsets.ReadOnlyModelViewSet):

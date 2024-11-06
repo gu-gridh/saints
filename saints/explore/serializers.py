@@ -368,6 +368,21 @@ class AgentSerializer(serializers.ModelSerializer):
         exclude = ['notes']
 
 
+class PlaceChildrenSerializer(serializers.ModelSerializer):
+    relation_cult_place = CultMiniSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Place
+        fields = ['id', 'name', 'relation_cult_place']
+
+
+class PlaceChildrenMiniSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Place
+        fields = ['id', 'name']
+
+
 class PlaceSerializer(serializers.ModelSerializer):
     created = UserSerializer(read_only=True)
     modified = UserSerializer(read_only=True)
@@ -375,7 +390,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     place_type = PlaceTypeMiniSerializer(read_only=True)
     parent = PlaceMiniSerializer(read_only=True)
     quote = QuoteMiniSerializer(read_only=True, many=True)
-    place_children = PlaceMiniSerializer(read_only=True, many=True)
+    place_children = PlaceChildrenMiniSerializer(read_only=True, many=True)
     relation_cult_place = CultMiniSerializer(read_only=True, many=True)
     relation_other_place = RelationOtherPlaceCultSerializer(read_only=True, many=True, source='relationotherplace_set')
     place_names = serializers.SerializerMethodField()

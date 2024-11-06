@@ -121,7 +121,7 @@ class MBResourceRelationSerializer(serializers.ModelSerializer):
         for image in res['images']:
             if image['thumbnail'] == res['main_thumb']:
                 res['main_thumb'] = image['filename']
-        res = sorted(res['images'], key=lambda d: d['filename'])
+        res['images'] = sorted(res['images'], key=lambda d: d['filename'])
         return res
 
     class Meta:

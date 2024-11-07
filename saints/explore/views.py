@@ -359,7 +359,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 queryset = queryset.filter(relation_cult_place__in=cultset).distinct()
             else:
                 gender = options.get('gender')
-                agents = options.get('agents')
+                agents = options.get('agent')
                 operator = options.get('op')
                 if search is not None:
                     agentset = models.Agent.objects.filter(Q(name__icontains=search) | Q(agentname__name__icontains=search))

@@ -358,7 +358,7 @@ class Source(EntityMixin, NotesMixin, DatesMixin):
 
 
 class Quote(EntityMixin, NotesMixin, DatesMixin):
-    source = models.ForeignKey(Source, on_delete=models.RESTRICT, null=True)
+    source = models.ForeignKey(Source, on_delete=models.RESTRICT, null=True, related_name="source_quote")
     page = models.CharField(max_length=255, blank=True, help_text="Page or folio")
     language = models.CharField(max_length=4, blank=True, choices=LANGUAGES)
     uri = models.URLField(blank=True)

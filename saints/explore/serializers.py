@@ -143,11 +143,11 @@ class PlaceTypeMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'parent']
 
 
-class SourceSerializer(serializers.ModelSerializer):
+class QuoteMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Source
-        exclude = ['created', 'modified', 'notes']
+        model = Quote
+        exclude = ['created', 'modified', 'notes', 'updated']
 
 
 class SourceMiniSerializer(serializers.ModelSerializer):
@@ -157,10 +157,10 @@ class SourceMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
-class QuoteMiniSerializer(serializers.ModelSerializer):
+class SourceMediumSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Quote
+        model = Source
         exclude = ['created', 'modified', 'notes', 'updated']
 
 
@@ -337,6 +337,24 @@ class RelationOtherPlaceCultSerializer(serializers.ModelSerializer):
     class Meta:
         model = RelationOtherPlace
         fields = ['cult', 'place_uncertainty', 'role']
+
+
+class QuoteSourceSerializer(serializers.ModelSerializer):
+    cult = CultMiniSerializer(read_only=True, many=True, source='cult_quote')
+
+    class Meta:
+        model = Quote
+        fields = ['id', 'comment', 'not_after', 'not_before', 'date_note',
+                  'page', 'language', 'uri', 'quote_transcription',
+                  'transcribed_by', 'translation', 'translated_by', 'cult']
+
+
+class SourceSerializer(serializers.ModelSerializer):
+    quote = QuoteSourceSerializer(many=True, source="source_quote")
+
+    class Meta:
+        model = Source
+        exclude = ['notes', 'created', 'modified', 'updated']
 
 
 class QuoteSerializer(serializers.ModelSerializer):

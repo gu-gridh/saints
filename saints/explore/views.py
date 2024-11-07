@@ -3,7 +3,8 @@ from rest_framework.settings import api_settings
 from rest_framework_gis.filters import InBBoxFilter
 # from rest_framework_gis.pagination import GeoJsonPagination
 from django.contrib.gis.gdal.envelope import Envelope
-from django.db.models import Q
+from django.db.models import Q, Prefetch
+from django.views.generic.detail import DetailView
 from . import models
 from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
@@ -11,7 +12,7 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
     CultMapSerializer, SaintsMapSerializer, PeopleMapSerializer, \
     CultMiniSerializer, QuoteSerializer, QuoteMiniSerializer, \
-    PlaceChildrenSerializer
+    PlaceChildrenSerializer, SourceMediumSerializer
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -197,18 +198,30 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
         and/or the first letter, by filtering against a `type`
         and/or `letter` query parameter in the URL.
         """
-        queryset = models.Source.objects.all()
-        source_type = self.request.query_params.get('type')
-        first_letter = self.request.query_params.get('letter')
-        if source_type is not None:
-            queryset = queryset.filter(source_type=source_type)
-        if first_letter is not None:
-            queryset = queryset.filter(Q(name__startswith=first_letter)
-                                       | Q(title__startswith=first_letter)
-                                       | Q(author__startswith=first_letter))
+        if self.detail is True:
+            queryset = models.Source.objects.prefetch_related("source_quote__cult_quote__place").prefetch_related("source_quote__cult_quote__cult_type").prefetch_related("source_quote__cult_quote")
+        # .prefetch_related(Prefetch(
+        #   'source_quote__cult_quote',
+        #     'agent')
+        #  )).all()
+        else:
+            queryset = models.Source.objects.all()
+            source_type = self.request.query_params.get('type')
+            first_letter = self.request.query_params.get('letter')
+            if source_type is not None:
+                queryset = queryset.filter(source_type=source_type)
+            if first_letter is not None:
+                queryset = queryset.filter(Q(name__startswith=first_letter)
+                                           | Q(title__startswith=first_letter)
+                                           | Q(author__startswith=first_letter))
         return queryset.order_by('name')
 
-    serializer_class = SourceSerializer
+    def get_serializer_class(self):
+        if self.detail is True:
+            return SourceSerializer
+        else:
+            return SourceMediumSerializer
+
     pagination_class = LargeResultsSetPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'title', 'author']

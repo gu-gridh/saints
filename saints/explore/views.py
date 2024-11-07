@@ -178,7 +178,7 @@ class PlaceChildrenViewSet(OrderingMixin):
         by filtering against a `type` query parameter in the URL.
         """
         # optimize for mini search
-        queryset = models.Place.objects.filter(exclude=False).select_related("parent").prefetch_related("relation_cult_place")
+        queryset = models.Place.objects.filter(exclude=False).select_related("parent").prefetch_related("relation_cult_place__cult_type").prefetch_related("place_type").select_related("parent__place_type")
         id = self.request.query_params.get('id')
         if id is not None:
             queryset = queryset.filter(parent=id).order_by('name')

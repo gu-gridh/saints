@@ -369,11 +369,28 @@ class AgentSerializer(serializers.ModelSerializer):
 
 
 class PlaceChildrenSerializer(serializers.ModelSerializer):
-    relation_cult_place = CultMiniSerializer(read_only=True, many=True)
+    """ Allow only church related places to show related child places
+    """
+    relation_cult_place = serializers.SerializerMethodField()
+    relation_other_place = serializers.SerializerMethodField()
+
+    def get_relation_cult_place(obj, self):
+        if self.parent.place_type.parent.id in [3, 4, 5, 7, 10, 11]:
+            relations = self.relation_cult_place.all()
+        else:
+            relations = None
+        return CultMiniSerializer(relations, read_only=True, many=True).data
+
+    def get_relation_other_place(obj, self):
+        if self.parent.place_type.parent.id in [3, 4, 5, 7, 10, 11]:
+            relations = self.relation_other_place.all()
+        else:
+            relations = None
+        return CultMiniSerializer(relations, read_only=True, many=True).data
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'relation_cult_place']
+        fields = ['id', 'name', 'relation_cult_place', 'relation_other_place']
 
 
 class PlaceSerializer(serializers.ModelSerializer):

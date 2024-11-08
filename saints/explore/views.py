@@ -12,7 +12,12 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
     CultMapSerializer, SaintsMapSerializer, PeopleMapSerializer, \
     CultMiniSerializer, QuoteSerializer, QuoteMiniSerializer, \
-    PlaceChildrenSerializer, SourceMediumSerializer
+    PlaceChildrenSerializer, SourceMediumSerializer, SourceMiniSerializer
+
+
+class MediumResultsSetPagination(pagination.PageNumberPagination):
+    page_size = 100
+    max_page_size = 100
 
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
@@ -206,7 +211,7 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
         and/or the first letter, by filtering against a `type`
         and/or `letter` query parameter in the URL.
         """
-        if self.detail is True:
+        if self.detail is True and self.request.query_params.get('mini') is None:
             queryset = models.Source.objects.prefetch_related("source_quote__cult_quote__place").prefetch_related("source_quote__cult_quote__cult_type").prefetch_related("source_quote__cult_quote")
         # .prefetch_related(Prefetch(
         #   'source_quote__cult_quote',
@@ -226,7 +231,10 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_serializer_class(self):
         if self.detail is True:
-            return SourceSerializer
+            if self.request.query_params.get('mini') is not None:
+                return SourceMediumSerializer
+            else:
+                return SourceSerializer
         else:
             return SourceMediumSerializer
 
@@ -250,7 +258,7 @@ class QuotesViewSet(viewsets.ReadOnlyModelViewSet):
         if source is not None:
             queryset = queryset.filter(source=source)
         if mini is None:
-            queryset = queryset.prefetch_related("cult_quote__place").prefetch_related("cult_quote__cult_type")
+            queryset = queryset.prefetch_related('cult_quote__relation_cult_agent').prefetch_related("cult_quote__place").prefetch_related("cult_quote__cult_type")
         return queryset.order_by('page')
 
     def get_serializer_class(self):
@@ -264,8 +272,9 @@ class QuotesViewSet(viewsets.ReadOnlyModelViewSet):
         mini = self.request.query_params.get('mini')
         if mini is not None:
             return LargeResultsSetPagination
-        return api_settings.DEFAULT_PAGINATION_CLASS
+        return MediumResultsSetPagination
 
+    pagination_class = property(fget=get_pagination_class)
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['quote_transcription', 'translation']
     ordering_fields = ['quote_transcription']

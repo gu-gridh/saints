@@ -35,6 +35,7 @@ class AgentsViewSet(OrderingMixin):
         agent_type = options.get('type')
         operator = options.get('op')
         mini = options.get('mini')
+        # range = options.get('range')
         queryset = models.Agent.objects.all().prefetch_related("agent_type").order_by('name')
         if mini is None:
             queryset = queryset.prefetch_related("agentname_set").prefetch_related("relationcultagent_set__cult__cult_type").prefetch_related("relationcultagent_set__cult__place").prefetch_related("feastday_set")
@@ -104,6 +105,7 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
         uncertainty = options.get('uncertainty')
         extant = options.get('extant')
         source = options.get('source')
+        range = options.get('range')
         queryset = models.Cult.objects.select_related("cult_type").select_related("cult_type__parent").select_related("place").select_related("created").select_related("modified").all()
         queryset = queryset.prefetch_related("relationcultagent_set__agent")
         if uncertainty is not None:
@@ -112,6 +114,12 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(extant=extant)
         if source is not None:
             queryset = queryset.filter(quote__source_id=source)
+        if range is not None and range != '':
+            years = range.split(',')
+            minyear = int(years[0])
+            maxyear = int(years[1])
+            queryset = queryset.filter(minyear__gte=minyear,
+                                       maxyear__lte=maxyear)
         if cult_type is not None:
             types = cult_type.split(',')
             # queryset = queryset.prefetch_related("cult_type__parent")
@@ -389,7 +397,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                     agentset = agentset.filter(saint=False).order_by('name')
                     queryset = queryset.filter(relation_cult_place__relationotheragent__agent_id__in=agentset).distinct()
 
-            if range is not None and range != 'undefined':
+            if range is not None:
                 years = range.split(',')
                 minyear = int(years[0])
                 maxyear = int(years[1])
@@ -399,7 +407,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
         elif layer == 'place':
             if search is not None:
                 queryset = queryset.filter(name__icontains=search).order_by('name')
-            if zoom is not None and zoom != 'null' and zoom < 13 and ids == 'null':
+            if zoom is not None and zoom != 'null' and zoom < 13 and ids is None:
                 if zoom < 9:
                     queryset = queryset.filter(place_type__parent__in=[1,2])
                 elif zoom < 11:
@@ -407,8 +415,8 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 else:
                     queryset = queryset.filter(place_type__parent__in=[1,2,3,4,6])
             else:
-                # Show all places but modern church, altar and chapel in church
-                queryset = queryset.exclude(place_type__parent__in=[18,46,49])
+                # Show all places but modern church, altar and chapel in church (former 18,46,49)
+                queryset = queryset.exclude(place_type__in=[30,58,61])
             if ids is not None and ids != 'null':
                 types = ids.split(',')
                 queryset = queryset.filter(Q(place_type__in=types) | Q(place_type__parent__in=types)).order_by('name')

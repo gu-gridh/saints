@@ -302,7 +302,7 @@ class CultTypesViewSet(OrderingMixin):
         queryset = models.CultType.objects.all()
         parent = self.request.query_params.get('parent')
         level = self.request.query_params.get('level')
-        if parent is not None:
+        if parent is not None and parent != '':
             queryset = queryset.filter(parent__in=parent.split(','))
         if level is not None:
             queryset = queryset.filter(level=level)

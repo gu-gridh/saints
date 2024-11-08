@@ -457,34 +457,24 @@ class CultMapSerializer(PlaceMapSerializer):
 
 class SaintsMapSerializer(PlaceMapSerializer):
     ids = serializers.SerializerMethodField()
-    agents = serializers.SerializerMethodField()
 
     def get_ids(self, obj):
         type = self.context['request'].query_params.get('ids')
+        agent = self.context['request'].query_params.get('agent')
+        res = {}
         if type is not None and type != 'null':
             types = type.split(',')
             ids = obj.relation_cult_place.filter(relationcultagent__agent__agent_type__in=types).values('relationcultagent__agent__agent_type')
-        else:
-            ids = obj.relation_cult_place.all().values('relationcultagent__agent__agent_type')
-        res = {}
-        for id in ids:
-            agent_type = id['relationcultagent__agent__agent_type']
-            if agent_type in res:
-                res[agent_type] += 1
-            elif agent_type is not None:
-                res[agent_type] = 1
-        return res
-
-    def get_agents(self, obj):
-        agent = self.context['request'].query_params.get('agents')
-        if agent is not None and agent != 'null':
+        elif type is None and agent is not None:
             agents = agent.split(',')
             ids = obj.relation_cult_place.filter(relationcultagent__agent_id__in=agents).values('relationcultagent__agent_id')
         else:
-            ids = obj.relation_cult_place.all().values('relationcultagent__agent_id')
-        res = {}
+            ids = obj.relation_cult_place.all().values('relationcultagent__agent__agent_type')        
         for id in ids:
-            agent_id = id['relationcultagent__agent_id']
+            if agent is not None:
+                agent_id = id['relationcultagent__agent_id']
+            else:
+                agent_id = id['relationcultagent__agent__agent_type']
             if agent_id in res:
                 res[agent_id] += 1
             elif agent_id is not None:
@@ -493,40 +483,30 @@ class SaintsMapSerializer(PlaceMapSerializer):
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'place_type', 'ids', 'agents', 'geometry']
+        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
         geo_field = 'geometry'
 
 
 class PeopleMapSerializer(PlaceMapSerializer):
     ids = serializers.SerializerMethodField()
-    agents = serializers.SerializerMethodField()
 
     def get_ids(self, obj):
         type = self.context['request'].query_params.get('ids')
+        agent = self.context['request'].query_params.get('agent')
+        res = {}
         if type is not None and type != 'null':
             types = type.split(',')
             ids = obj.relation_cult_place.filter(relationotheragent__agent__agent_type__in=types).values('relationotheragent__agent__agent_type')
-        else:
-            ids = obj.relation_cult_place.all().values('relationotheragent__agent__agent_type')
-        res = {}
-        for id in ids:
-            agent_type = id['relationotheragent__agent__agent_type']
-            if agent_type in res:
-                res[agent_type] += 1
-            elif agent_type is not None:
-                res[agent_type] = 1
-        return res
-
-    def get_agents(self, obj):
-        agent = self.context['request'].query_params.get('agents')
-        if agent is not None and agent != 'null':
+        elif type is None and agent is not None:
             agents = agent.split(',')
             ids = obj.relation_cult_place.filter(relationotheragent__agent_id__in=agents).values('relationotheragent__agent_id')
         else:
-            ids = obj.relation_cult_place.all().values('relationotheragent__agent_id')
-        res = {}
+            ids = obj.relation_cult_place.all().values('relationotheragent__agent__agent_type')
         for id in ids:
-            agent_id = id['relationotheragent__agent_id']
+            if agent is not None:
+                agent_id = id['relationotheragent__agent_id']
+            else:
+                agent_id = id['relationotheragent__agent__agent_type']
             if agent_id in res:
                 res[agent_id] += 1
             elif agent_id is not None:
@@ -535,5 +515,5 @@ class PeopleMapSerializer(PlaceMapSerializer):
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'place_type', 'ids', 'agents', 'geometry']
+        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
         geo_field = 'geometry'

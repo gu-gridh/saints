@@ -121,6 +121,18 @@ class RelationQuoteInline(admin.TabularInline):
     autocomplete_fields = ["quote"]
 
 
+class RelationQuotePlaceInline(admin.TabularInline):
+    extra = 0
+    model = RelationQuote
+    fields = ["place", "quote_uncertainty"]
+    autocomplete_fields = ["place"]
+
+
+class RelationCultQuoteInline(admin.TabularInline):
+    extra = 0
+    model = Cult
+
+
 class RelationOfficeInline(admin.TabularInline):
     extra = 0
     model = RelationOffice
@@ -286,6 +298,7 @@ class PlaceAdmin(EntityAdminMixin, ModelAdmin, gis_admin.GISModelAdmin):
     inlines = [
         PlaceNameInline,
         CultInline,
+        RelationOtherPlaceInline,
         RelationQuoteInline
     ]
     ordering = ["name"]
@@ -547,6 +560,9 @@ class QuoteAdmin(EntityAdminMixin, ModelAdmin):
             },
 
         ),
+    ]
+    inlines = [
+        RelationQuotePlaceInline
     ]
     ordering = ["source__name"]
 

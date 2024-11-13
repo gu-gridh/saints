@@ -462,7 +462,7 @@ class CultMapSerializer(PlaceMapSerializer):
                 cult_type = str(id['cult_type'])
                 parent_type = str(id['cult_type__parent'])
                 parentp_type = str(id['cult_type__parent__parent'])
-                if cult_type != '' and type in res:
+                if cult_type != '' and cult_type in res:
                     res[cult_type] += 1
                 if parent_type != '' and parent_type in res:
                     res[parent_type] += 1

@@ -108,11 +108,14 @@ class DiocesesViewSet(OrderingMixin):
 
     def get_queryset(self):
         type = self.request.query_params.get('type')
+        # only show those with connected cults. TODO: different for places
         if type is not None:
             if type == "Modern":
-                queryset = models.Organization.objects.filter(organization_type=9).order_by('name')
+                existing = models.Cult.objects.prefetch_related("place__parish").values("place__parish__organization_id").distinct()
+                queryset = models.Organization.objects.filter(organization_type=9, id__in=existing).order_by('name')
             else:
-                queryset = models.Organization.objects.filter(organization_type=2).order_by('name')
+                existing_meds = models.Cult.objects.prefetch_related("place__parish").values("place__parish__medival_organization_id").distinct()
+                queryset = models.Organization.objects.filter(organization_type=2, id__in=existing_meds).order_by('name')
         else:
             queryset = models.Organization.objects.filter(organization_type__in=[2,9]).order_by('name')
         return queryset

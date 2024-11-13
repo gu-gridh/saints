@@ -12,6 +12,7 @@ router.register("placechildren", views.PlaceChildrenViewSet, basename="placechil
 router.register("organization", views.OrganizationViewSet, basename="organization")
 router.register("source", views.SourcesViewSet, basename="source")
 router.register("quote", views.QuotesViewSet, basename="quote")
+router.register("diocese", views.DiocesesViewSet, basename="diocese")
 router.register("agenttype", views.AgentTypesViewSet, basename="agenttype")
 router.register("culttype", views.CultTypesViewSet, basename="culttype")
 router.register("placetype", views.PlaceTypesViewSet, basename="placetype")

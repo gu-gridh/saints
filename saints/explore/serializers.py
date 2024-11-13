@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from django.contrib.auth.models import User
+from django.db.models import Q
 from .models import Agent, AgentType, AgentName, Place, PlaceName, PlaceType, \
     Cult, CultType, Source, Parish, Quote, Organization, FeastDay, \
     OrganizationType, RelationCultAgent, RelationOffice, \
@@ -35,6 +36,13 @@ class PlaceNameSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlaceName
         fields = '__all__'
+
+
+class OrganizationMiniSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Organization
+        fields = ['id', 'name']
 
 
 class OrganizationMiniSerializer(serializers.ModelSerializer):
@@ -141,6 +149,13 @@ class PlaceTypeMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlaceType
         fields = ['id', 'name', 'parent']
+
+
+class DioceseMiniSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Organization
+        fields = ['id', 'name']
 
 
 class QuoteMiniSerializer(serializers.ModelSerializer):
@@ -435,18 +450,24 @@ class CultMapSerializer(PlaceMapSerializer):
 
     def get_ids(self, obj):
         type = self.context['request'].query_params.get('ids')
+        res = {}
         if type is not None and type != 'null':
             types = type.split(',')
-            ids = obj.relation_cult_place.all().filter(cult_type__in=types).values('id', 'cult_type')
+            ids = obj.relation_cult_place.all().filter(Q(cult_type__in=types)
+                                                       | Q(cult_type__parent__in=types)
+                                                       | Q(cult_type__parent__parent__in=types)).values('id', 'cult_type', 'cult_type__parent', 'cult_type__parent__parent')
+            for type in types:
+                print(type)
+                print(len(list(filter(lambda x: x["cult_type__parent__parent"] == str(type), ids))))
+                res[type] = ""
         else:
             ids = obj.relation_cult_place.all().values('id', 'cult_type')
-        res = {}
-        for id in ids:
-            cult_type = id['cult_type']
-            if cult_type in res:
-                res[cult_type] += 1
-            elif cult_type is not None:
-                res[cult_type] = 1
+            for id in ids:
+                cult_type = id['cult_type']
+                if cult_type in res:
+                    res[cult_type] += 1
+                elif cult_type is not None:
+                    res[cult_type] = 1
         return res
 
     class Meta:

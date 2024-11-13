@@ -167,7 +167,7 @@ class RelationDigitalResource(EntityMixin):
 
 
 class RelationMBResource(EntityMixin):
-    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
+    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT, related_name="mbresources")
     resource_uri = models.URLField(blank=True)
 
 

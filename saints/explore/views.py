@@ -12,7 +12,8 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
     CultMapSerializer, SaintsMapSerializer, PeopleMapSerializer, \
     CultMiniSerializer, QuoteSerializer, QuoteMiniSerializer, \
-    PlaceChildrenSerializer, SourceMediumSerializer, SourceMiniSerializer
+    PlaceChildrenSerializer, SourceMediumSerializer, SourceMiniSerializer, \
+    OrganizationMiniSerializer
 
 
 class MediumResultsSetPagination(pagination.PageNumberPagination):
@@ -103,6 +104,23 @@ class AgentNamesViewSet(OrderingMixin):
     search_fields = ['name']
 
 
+class DiocesesViewSet(OrderingMixin):
+
+    def get_queryset(self):
+        type = self.request.query_params.get('type')
+        if type is not None:
+            if type == "Modern":
+                queryset = models.Organization.objects.filter(organization_type=9).order_by('name')
+            else:
+                queryset = models.Organization.objects.filter(organization_type=2).order_by('name')
+        else:
+            queryset = models.Organization.objects.filter(organization_type__in=[2,9]).order_by('name')
+        return queryset
+
+    serializer_class = OrganizationMiniSerializer
+    pagination_class = LargeResultsSetPagination
+
+
 class CultsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         options = self.request.query_params
@@ -111,8 +129,21 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
         extant = options.get('extant')
         source = options.get('source')
         range = options.get('range')
+        diocese = options.get('diocese')
+        med_diocese = options.get('med_diocese')
+        mini = options.get('mini')
         queryset = models.Cult.objects.select_related("cult_type").select_related("cult_type__parent").select_related("place").select_related("created").select_related("modified").all()
         queryset = queryset.prefetch_related("relationcultagent_set__agent")
+        if mini is None:
+            queryset = queryset.prefetch_related("place__parish__medival_organization").prefetch_related("place__place_type").prefetch_related("cult_children").prefetch_related("quote").prefetch_related("associated").prefetch_related("relationotheragent_set")
+        if diocese is not None:
+            if mini is not None:
+                queryset = queryset.prefetch_related("place__parish")
+            queryset = queryset.filter(place__parish__organization_id=diocese)
+        if med_diocese is not None:
+            if mini is not None:
+                queryset = queryset.prefetch_related("place__parish")
+            queryset = queryset.filter(place__parish__medival_organization_id=diocese)
         if uncertainty is not None:
             queryset = queryset.filter(place_uncertainty=uncertainty)
         if extant is not None:
@@ -159,13 +190,18 @@ class PlacesViewSet(OrderingMixin):
         """
         # optimize for mini search
         queryset = models.Place.objects.filter(exclude=False).select_related("place_type").select_related("created").select_related("modified").select_related("parish").select_related("parent")
-        queryset = queryset.prefetch_related("relation_cult_place__cult_type")
-        place_type = self.request.query_params.get('type')
+        queryset = queryset.prefetch_related("relation_cult_place__cult_type").order_by('name')
+        options = self.request.query_params
+        place_type = options.get('type')
+        diocese = options.get('diocese')
+        med_diocese = options.get('med_diocese')
         if place_type is not None:
             types = place_type.split(',')
             queryset = queryset.filter(Q(place_type__in=types) | Q(place_type__parent__in=types)).order_by('name')
-        else:
-            queryset = queryset.order_by('name')
+        if diocese is not None:
+            queryset = queryset.filter(parish__organization_id=diocese).order_by('name')
+        if med_diocese is not None:
+            queryset = queryset.filter(parish__medival_organization_id=diocese).order_by('name')
         return queryset
 
     def get_serializer_class(self):

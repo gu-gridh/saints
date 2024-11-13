@@ -143,7 +143,7 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
         if med_diocese is not None:
             if mini is not None:
                 queryset = queryset.prefetch_related("place__parish")
-            queryset = queryset.filter(place__parish__medival_organization_id=diocese)
+            queryset = queryset.filter(place__parish__medival_organization_id=med_diocese)
         if uncertainty is not None:
             queryset = queryset.filter(place_uncertainty=uncertainty)
         if extant is not None:

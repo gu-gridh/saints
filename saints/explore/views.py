@@ -396,6 +396,8 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             if layer == 'cult':
                 uncertainty = options.get('uncertainty')
                 extant = options.get('extant')
+                diocese = options.get('diocese')
+                med_diocese = options.get('med_diocese')
                 if search is not None:
                     cultset = models.Cult.objects.filter(place__name__icontains=search)
                 else:
@@ -404,6 +406,10 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                     cultset = cultset.filter(place_uncertainty=uncertainty)
                 if extant is not None:
                     cultset = cultset.filter(extant=extant)
+                if diocese is not None:
+                    queryset = queryset.select_related("parish").filter(parish__organization_id=diocese)
+                if med_diocese is not None:
+                    queryset = queryset.select_related("parish").filter(parish__medival_organization_id=med_diocese)
                 if ids is not None and ids != 'null':
                     types = ids.split(',')
                     cultset = cultset.filter(Q(cult_type__in=types)
@@ -450,6 +456,8 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                                            relation_cult_place__maxyear__lte=maxyear)
 
         elif layer == 'place':
+            diocese = options.get('diocese')
+            med_diocese = options.get('med_diocese')
             if search is not None:
                 queryset = queryset.filter(name__icontains=search).order_by('name')
             if zoom is not None and zoom != 'null' and zoom < 13 and ids is None:
@@ -465,6 +473,10 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             if ids is not None and ids != 'null':
                 types = ids.split(',')
                 queryset = queryset.filter(Q(place_type__in=types) | Q(place_type__parent__in=types)).order_by('name')
+            if diocese is not None:
+                queryset = queryset.select_related("parish").filter(parish__organization_id=diocese)
+            if med_diocese is not None:
+                queryset = queryset.select_related("parish").filter(parish__medival_organization_id=med_diocese)
 
         if bbox is not None:
             bbox = bbox.strip().split(',')

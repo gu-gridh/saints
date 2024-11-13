@@ -201,7 +201,7 @@ class PlacesViewSet(OrderingMixin):
         if diocese is not None:
             queryset = queryset.filter(parish__organization_id=diocese).order_by('name')
         if med_diocese is not None:
-            queryset = queryset.filter(parish__medival_organization_id=diocese).order_by('name')
+            queryset = queryset.filter(parish__medival_organization_id=med_diocese).order_by('name')
         return queryset
 
     def get_serializer_class(self):

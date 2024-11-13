@@ -457,9 +457,19 @@ class CultMapSerializer(PlaceMapSerializer):
                                                        | Q(cult_type__parent__in=types)
                                                        | Q(cult_type__parent__parent__in=types)).values('id', 'cult_type', 'cult_type__parent', 'cult_type__parent__parent')
             for type in types:
-                print(type)
-                print(len(list(filter(lambda x: x["cult_type__parent__parent"] == str(type), ids))))
-                res[type] = ""
+                res[type] = 0
+            for id in ids:
+                cult_type = str(id['cult_type'])
+                parent_type = str(id['cult_type__parent'])
+                parentp_type = str(id['cult_type__parent__parent'])
+                if cult_type != '' and type in res:
+                    res[cult_type] += 1
+                if parent_type != '' and parent_type in res:
+                    res[parent_type] += 1
+                if parentp_type != '' and parentp_type in res:
+                    res[parentp_type] += 1
+            # for type in types:
+            #    res[type] = len(list((filter(lambda x: x["cult_type"] == int(type) or x["cult_type__parent"] or x["cult_type__parent__parent"] == int(type), ids))))
         else:
             ids = obj.relation_cult_place.all().values('id', 'cult_type')
             for id in ids:

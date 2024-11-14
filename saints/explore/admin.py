@@ -106,6 +106,12 @@ class CultInline(admin.TabularInline):
     fields = ["id", "cult_type", "place", "not_before", "not_after"]
 
 
+class PlaceInline(admin.TabularInline):
+    extra = 0
+    model = Place
+    fields = ["id", "name", "place_type"]
+
+
 class QuoteInline(admin.StackedInline):
     extra = 0
     model = Quote
@@ -468,7 +474,8 @@ class ParishAdmin(EntityAdminMixin, ModelAdmin):
         ),
     ]
     inlines = [
-        ParishNameInline
+        ParishNameInline,
+        PlaceInline,
     ]
     ordering = ["name"]
 

@@ -327,7 +327,7 @@ class Parish(EntityMixin, NotesMixin, DatesMixin):
         verbose_name_plural = "parishes"
 
     def __str__(self):
-        return "|".join(filter(None, [self.name]))
+        return "|".join(filter(None, [self.name, self.medival_organization.name]))
 
 
 class Source(EntityMixin, NotesMixin, DatesMixin):

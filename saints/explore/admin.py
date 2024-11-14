@@ -143,8 +143,15 @@ class RelationOfficeInline(admin.TabularInline):
 class RelationOtherPlaceInline(admin.TabularInline):
     extra = 0
     model = RelationOtherPlace
-    fields = ["role", "place"]
+    fields = ["role", "place", "place_uncertainty"]
     autocomplete_fields = ["role", "place"]
+
+
+class RelationOtherPlaceInline2(admin.TabularInline):
+    extra = 0
+    model = RelationOtherPlace
+    fields = ["role", "cult", "place_uncertainty"]
+    autocomplete_fields = ["role", "cult"]
 
 
 class RelationCultAgentInline(admin.TabularInline):
@@ -298,7 +305,7 @@ class PlaceAdmin(EntityAdminMixin, ModelAdmin, gis_admin.GISModelAdmin):
     inlines = [
         PlaceNameInline,
         CultInline,
-        RelationOtherPlaceInline,
+        RelationOtherPlaceInline2,
         RelationQuoteInline
     ]
     ordering = ["name"]

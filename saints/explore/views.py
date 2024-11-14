@@ -132,18 +132,13 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
         extant = options.get('extant')
         source = options.get('source')
         range = options.get('range')
-        diocese = options.get('diocese')
         med_diocese = options.get('med_diocese')
         mini = options.get('mini')
         queryset = models.Cult.objects.select_related("cult_type").select_related("cult_type__parent").select_related("place").select_related("created").select_related("modified").all()
         queryset = queryset.prefetch_related("relationcultagent_set__agent")
         if mini is None:
             queryset = queryset.prefetch_related("place__parish__medival_organization").prefetch_related("place__place_type").prefetch_related("cult_children").prefetch_related("quote").prefetch_related("associated").prefetch_related("relationotheragent_set")
-        if diocese is not None:
-            if mini is not None:
-                queryset = queryset.prefetch_related("place__parish")
-            queryset = queryset.filter(place__parish__organization_id=diocese)
-        if med_diocese is not None:
+        if med_diocese is not None and med_diocese != '':
             if mini is not None:
                 queryset = queryset.prefetch_related("place__parish")
             queryset = queryset.filter(place__parish__medival_organization_id=med_diocese)
@@ -196,14 +191,11 @@ class PlacesViewSet(OrderingMixin):
         queryset = queryset.prefetch_related("relation_cult_place__cult_type").order_by('name')
         options = self.request.query_params
         place_type = options.get('type')
-        diocese = options.get('diocese')
         med_diocese = options.get('med_diocese')
         if place_type is not None:
             types = place_type.split(',')
             queryset = queryset.filter(Q(place_type__in=types) | Q(place_type__parent__in=types)).order_by('name')
-        if diocese is not None:
-            queryset = queryset.filter(parish__organization_id=diocese).order_by('name')
-        if med_diocese is not None:
+        if med_diocese is not None and med_diocese != '':
             queryset = queryset.filter(parish__medival_organization_id=med_diocese).order_by('name')
         return queryset
 
@@ -399,7 +391,6 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             if layer == 'cult':
                 uncertainty = options.get('uncertainty')
                 extant = options.get('extant')
-                diocese = options.get('diocese')
                 med_diocese = options.get('med_diocese')
                 if search is not None:
                     cultset = models.Cult.objects.filter(place__name__icontains=search)
@@ -409,9 +400,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                     cultset = cultset.filter(place_uncertainty=uncertainty)
                 if extant is not None:
                     cultset = cultset.filter(extant=extant)
-                if diocese is not None:
-                    queryset = queryset.select_related("parish").filter(parish__organization_id=diocese)
-                if med_diocese is not None:
+                if med_diocese is not None and med_diocese != '':
                     queryset = queryset.select_related("parish").filter(parish__medival_organization_id=med_diocese)
                 if ids is not None and ids != 'null':
                     types = ids.split(',')
@@ -459,7 +448,6 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                                            relation_cult_place__maxyear__lte=maxyear)
 
         elif layer == 'place':
-            diocese = options.get('diocese')
             med_diocese = options.get('med_diocese')
             if search is not None:
                 queryset = queryset.filter(name__icontains=search).order_by('name')
@@ -476,9 +464,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
             if ids is not None and ids != 'null':
                 types = ids.split(',')
                 queryset = queryset.filter(Q(place_type__in=types) | Q(place_type__parent__in=types)).order_by('name')
-            if diocese is not None:
-                queryset = queryset.select_related("parish").filter(parish__organization_id=diocese)
-            if med_diocese is not None:
+            if med_diocese is not None and med_diocese != '':
                 queryset = queryset.select_related("parish").filter(parish__medival_organization_id=med_diocese)
 
         if bbox is not None:

@@ -491,4 +491,4 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
 
     filter_backends = [InBBoxFilter, filters.SearchFilter]
     bbox_filter_field = 'geometry'
-    page_size = 25
+    pagination_class = LargeResultsSetPagination

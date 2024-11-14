@@ -292,7 +292,7 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
     relation_other_place = models.ManyToManyField(Place, through=RelationOtherPlace, related_name="relation_other_place")
     relation_cult_agent = models.ManyToManyField(Agent, through=RelationCultAgent, related_name="relation_cult_agent")
     place_uncertainty = models.BooleanField(null=True, help_text="Is place uncertain?")
-    in_parish = models.BooleanField(help_text="Is cult located in a parish?")
+    in_parish = models.BooleanField(null=True, help_text="Is cult located in a parish?")
     parent = models.ForeignKey("self", on_delete=models.SET_NULL,
                                null=True, blank=True, related_name="cult_children")
     associated = models.ManyToManyField("self", null=True, blank=True, related_name="cult_associated")

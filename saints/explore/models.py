@@ -190,6 +190,10 @@ class RelationQuote(models.Model):
     quote_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is quote uncertain?")
     updated = models.DateField(auto_now=True)
 
+    class Meta:
+        verbose_name = "Place-Quote Relationship"
+        verbose_name_plural = "Place-Quote Relationships"
+
 
 class RelationOtherPlace(models.Model):
     cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)

@@ -106,6 +106,12 @@ class CultInline(admin.TabularInline):
     fields = ["id", "cult_type", "place", "not_before", "not_after"]
 
 
+class CultInline2(admin.TabularInline):
+    extra = 0
+    model = Cult.quote.through
+    fields = ["id", "cult"]
+    autocomplete_fields = ["cult"]
+
 class PlaceInline(admin.TabularInline):
     extra = 0
     model = Place
@@ -576,7 +582,8 @@ class QuoteAdmin(EntityAdminMixin, ModelAdmin):
         ),
     ]
     inlines = [
-        RelationQuotePlaceInline
+        RelationQuotePlaceInline,
+        CultInline2,
     ]
     ordering = ["source__name"]
 

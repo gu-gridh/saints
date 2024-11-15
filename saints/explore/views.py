@@ -397,7 +397,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 else:
                     cultset = models.Cult.objects.all()
                 if uncertainty is not None:
-                    cultset = cultset.filter(place_uncertainty=uncertainty)
+                    cultset = cultset.filter(cult_uncertainty=uncertainty)
                 if extant is not None:
                     cultset = cultset.filter(extant=extant)
                 if med_diocese is not None and med_diocese != '':

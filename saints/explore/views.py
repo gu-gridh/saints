@@ -290,7 +290,7 @@ class QuotesViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(source=source)
         if mini is None:
             queryset = queryset.prefetch_related('cult_quote__relation_cult_agent').prefetch_related("cult_quote__place").prefetch_related("cult_quote__cult_type")
-        return queryset.order_by('page')
+        return queryset.order_by('source__name')
 
     def get_serializer_class(self):
         mini = self.request.query_params.get('mini')
@@ -308,8 +308,8 @@ class QuotesViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = property(fget=get_pagination_class)
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['quote_transcription', 'translation']
-    ordering_fields = ['quote_transcription']
-    ordering = ['quote_transcription']
+    ordering_fields = ['source__name']
+    ordering = ['source__name']
 
 
 class PlaceTypesViewSet(OrderingMixin):

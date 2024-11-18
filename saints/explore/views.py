@@ -205,7 +205,7 @@ class CultAdvancedViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.prefetch_related("relationcultagent_set__agent").prefetch_related("relationotheragent_set__agent")
             if agent is not None and agent != '':
                 agents = agent.split(',')
-                queryset = queryset.filter(Q(relation_cult_agent__in=agents) | Q(relation_other_agent__in=agents)).distinct()
+                queryset = queryset.filter(Q(relation_cult_agent__in=agents) | Q(relationotheragent__in=agents)).distinct()
             if agent_type is not None and agent_type != '':
                 agent_types = agent_type.split(',')
                 queryset = queryset.filter(Q(relationcultagent__agent__agent_type__in=agent_types) | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
@@ -486,6 +486,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                     queryset = queryset.filter(relation_cult_place__relation_cult_agent__in=agentset).distinct()
                 elif (layer == 'people'):
                     agentset = agentset.filter(saint=False).order_by('name')
+                    agentset = agentset.prefetch_related("relation_cult_place__relation_other_agent__agent_type")
                     queryset = queryset.filter(relation_cult_place__relationotheragent__agent_id__in=agentset).distinct()
 
             if range is not None:

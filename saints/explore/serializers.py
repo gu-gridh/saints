@@ -122,7 +122,8 @@ class MBResourceRelationSerializer(serializers.ModelSerializer):
             if item['@type'] == 'Image':
                 res['images'].append({'filename': item['lowresSource'], 'thumbnail': item['thumbnailSource']})
             elif item['@type'] == 'ItemName':
-                res['name'] = item['name'].title()
+                if 'name' in item:
+                    res['name'] = item['name'].title()
             elif item['@type'] == 'Entity':
                 res['main_thumb'] = item['thumbnail']
         # find higher resolution version

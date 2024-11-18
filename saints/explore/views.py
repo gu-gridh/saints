@@ -440,7 +440,8 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 if search is not None:
                     cultset = models.Cult.objects.filter(Q(place__name__icontains=search)
                                                          | Q(cult_type__name__icontains=search)
-                                                         | Q(relation_cult_agent__name__icontains=search))
+                                                         | Q(relation_cult_agent__name__icontains=search)
+                                                         | Q(relation_other_agent__name__icontains=search))
                 else:
                     cultset = models.Cult.objects.all()
                 if uncertainty is not None:

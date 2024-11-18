@@ -175,7 +175,7 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = property(fget=get_pagination_class)
-    search_fields = ['place__name']
+    search_fields = ['place__name', 'cult_type__name', 'relation_cult_agent__agent_name']
     ordering_fields = ['place__name', 'cult_type__name']
     ordering = ['place__name']
 
@@ -393,7 +393,9 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 extant = options.get('extant')
                 med_diocese = options.get('med_diocese')
                 if search is not None:
-                    cultset = models.Cult.objects.filter(place__name__icontains=search)
+                    cultset = models.Cult.objects.filter(Q(place__name__icontains=search)
+                                                         | Q(cult_type_name__icontains=search)
+                                                         | Q(relation_cult_agent__agent_name__icontains=search))
                 else:
                     cultset = models.Cult.objects.all()
                 if uncertainty is not None:

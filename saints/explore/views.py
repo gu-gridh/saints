@@ -202,14 +202,13 @@ class CultAdvancedViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.prefetch_related("place__parish").prefetch_related("place__parish__medival_organization")
             queryset = queryset.filter(place__parish__medival_organization_id=med_diocese)
         if agent_type is not None or agent is not None:
-            queryset = queryset.prefetch_related("relationcultagent_set__agent")
+            queryset = queryset.prefetch_related("relationcultagent_set__agent").prefetch_related("relationotheragent_set__agent")
             if agent is not None and agent != '':
                 agents = agent.split(',')
-                queryset = queryset.filter(relation_cult_agent__in=agents).distinct()
+                queryset = queryset.filter(Q(relation_cult_agent__in=agents) | Q(relation_other_agent__in=agents)).distinct()
             if agent_type is not None and agent_type != '':
                 agent_types = agent_type.split(',')
-                agentset = models.Agent.objects.filter(agent_type__in=agent_types)
-                queryset = queryset.filter(Q(relation_cult_agent__id__in=agentset) & Q(relation_cult_agent__agent_type__in=agent_types)).distinct()
+                queryset = queryset.filter(Q(relationcultagent__agent__agent_type__in=agent_types) | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
         if range is not None and range != '':
             years = range.split(',')
             minyear = int(years[0])

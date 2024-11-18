@@ -191,7 +191,7 @@ class CultAdvancedViewSet(viewsets.ReadOnlyModelViewSet):
         med_diocese = options.get('med_diocese')
         queryset = models.Cult.objects.select_related("place").select_related("cult_type").all()
         # queryset = queryset.prefetch_related("place__parish__medival_organization").prefetch_related("place__place_type").prefetch_related("cult_children").prefetch_related("quote").prefetch_related("associated").prefetch_related("relationotheragent_set")
-        if cult_type is not None:
+        if cult_type is not None and cult_type != '':
             types = cult_type.split(',')
             queryset = queryset.prefetch_related("cult_type__parent")
             queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))

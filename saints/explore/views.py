@@ -180,6 +180,52 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['place__name']
 
 
+class CultAdvancedViewSet(viewsets.ReadOnlyModelViewSet):
+    def get_queryset(self):
+        options = self.request.query_params
+        cult_type = options.get('type')
+        place_type = options.get('place_type')
+        agent_type = options.get('agent_type')
+        agent = options.get('agent')
+        range = options.get('range')
+        med_diocese = options.get('med_diocese')
+        queryset = models.Cult.objects.select_related("place").select_related("cult_type").all()
+        # queryset = queryset.prefetch_related("place__parish__medival_organization").prefetch_related("place__place_type").prefetch_related("cult_children").prefetch_related("quote").prefetch_related("associated").prefetch_related("relationotheragent_set")
+        if cult_type is not None:
+            types = cult_type.split(',')
+            queryset = queryset.prefetch_related("cult_type__parent")
+            queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))
+        if place_type is not None and place_type != '':
+            queryset = queryset.prefetch_related("place__place_type")
+            queryset = queryset.filter(Q(place__place_type=place_type) | Q(place__place_type__parent=place_type))
+        if med_diocese is not None and med_diocese != '':
+            queryset = queryset.prefetch_related("place__parish").prefetch_related("place__parish__medival_organization")
+            queryset = queryset.filter(place__parish__medival_organization_id=med_diocese)
+        if agent_type is not None or agent is not None:
+            queryset = queryset.prefetch_related("relationcultagent_set__agent")
+            if agent is not None and agent != '':
+                agents = agent.split(',')
+                queryset = queryset.filter(relation_cult_agent__in=agents).distinct()
+            if agent_type is not None and agent_type != '':
+                agent_types = agent_type.split(',')
+                agentset = models.Agent.objects.filter(agent_type__in=agent_types)
+                queryset = queryset.filter(Q(relation_cult_agent__id__in=agentset) & Q(relation_cult_agent__agent_type__in=agent_types)).distinct()
+        if range is not None and range != '':
+            years = range.split(',')
+            minyear = int(years[0])
+            maxyear = int(years[1])
+            queryset = queryset.filter(minyear__gte=minyear,
+                                       maxyear__lte=maxyear)
+        return queryset.order_by('place__name')
+
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    pagination_class = LargeResultsSetPagination
+    serializer_class = CultMiniSerializer
+    search_fields = ['place__name', 'cult_type__name', 'relation_cult_agent__name']
+    ordering_fields = ['place__name', 'cult_type__name']
+    ordering = ['place__name']
+
+
 class PlacesViewSet(OrderingMixin):
     def get_queryset(self):
         """
@@ -394,7 +440,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 med_diocese = options.get('med_diocese')
                 if search is not None:
                     cultset = models.Cult.objects.filter(Q(place__name__icontains=search)
-                                                         | Q(cult_type_name__icontains=search)
+                                                         | Q(cult_type__name__icontains=search)
                                                          | Q(relation_cult_agent__name__icontains=search))
                 else:
                     cultset = models.Cult.objects.all()

@@ -384,13 +384,17 @@ class CultTypesViewSet(OrderingMixin):
         a certain parent type, by filtering against a `parent`
         query parameter in the URL which can be a list.
         """
-        queryset = models.CultType.objects.all()
         parent = self.request.query_params.get('parent')
         level = self.request.query_params.get('level')
+        queryset = models.CultType.objects.prefetch_related("parent").all()
         if parent is not None and parent != '':
             queryset = queryset.filter(parent__in=parent.split(','))
         if level is not None:
-            queryset = queryset.filter(level=level)
+            if level == "Subcategory":
+                existing_types = models.Cult.objects.select_related("cult_type").values("id").distinct()
+                queryset = queryset.filter(level=level, id__in=existing_types)
+            else:
+                queryset = queryset.filter(level=level)
         return queryset.order_by('name')
     serializer_class = CultTypeSerializer
     pagination_class = LargeResultsSetPagination

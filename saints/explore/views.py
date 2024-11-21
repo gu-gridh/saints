@@ -572,7 +572,7 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
 
         if med_diocese is not None and med_diocese != '':
             queryset = queryset.select_related("parish").filter(parish__medival_organization_id=med_diocese)
-        if cult_type is not None and cult_type != 'null':
+        if cult_type is not None and cult_type != '':
             types = cult_type.split(',')
             cultset = cultset.filter(Q(cult_type__in=types)
                                      | Q(cult_type__parent__in=types)
@@ -588,6 +588,10 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
             agentset = models.Agent.objects.filter(agent_type__in=agent_types)
             agentset = agentset.prefetch_related("relation_cult_place__relation_cult_agent__agent_type").prefetch_related("relation_cult_place__relation_other_agent__agent_type")
             queryset = queryset.filter(Q(relation_cult_place__relation_cult_agent__in=agentset) | Q(relation_cult_place__relationotheragent__agent_id__in=agentset)).distinct()
+
+        if agent is not None and agent != '':
+            agents = agent.split(',')
+            queryset = queryset.prefetch_related("relation_cult_place__relation_cult_agent").filter(Q(relation_cult_place__relation_cult_agent__in=agents) | Q(relation_cult_place__relationotheragent__agent__in=agents)).distinct()
 
         if range is not None and range != '':
             queryset = queryset.prefetch_related("relation_cult_place")

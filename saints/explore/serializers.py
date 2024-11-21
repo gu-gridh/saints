@@ -492,7 +492,19 @@ class AdvancedCultMapSerializer(PlaceMapSerializer):
 
     def get_ids(self, obj):
         res = {}
-        ids = obj.relation_cult_place.all().values('id')
+        type = self.context['request'].query_params.get('type')
+        agent_type = self.context['request'].query_params.get('agent_type')
+        ids = obj.relation_cult_place.all()
+        if type is not None and type != '':
+            types = type.split(',')
+            ids = ids.filter(Q(cult_type__in=types)
+                             | Q(cult_type__parent__in=types)
+                             | Q(cult_type__parent__parent__in=types))
+        if agent_type is not None and agent_type != '':
+            agent_types = agent_type.split(',')
+            ids = ids.filter(Q(relation_cult_agent__agent_type__in=agent_types)
+                             | Q(relationotheragent__agent__agent_type__in=agent_types))
+        ids = ids.values('id')
         for id in ids:
             cult = id['id']
             if cult in res:

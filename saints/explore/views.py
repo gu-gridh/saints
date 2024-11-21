@@ -12,8 +12,8 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentNameSerializer, AgentMiniSerializer, PlaceMapSerializer, \
     CultMapSerializer, SaintsMapSerializer, PeopleMapSerializer, \
     CultMiniSerializer, QuoteSerializer, QuoteMiniSerializer, \
-    PlaceChildrenSerializer, SourceMediumSerializer, SourceMiniSerializer, \
-    OrganizationMiniSerializer
+    PlaceChildrenSerializer, SourceMediumSerializer, \
+    OrganizationMiniSerializer, AdvancedCultMapSerializer
 
 
 class MediumResultsSetPagination(pagination.PageNumberPagination):
@@ -609,6 +609,6 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
     filter_backends = [InBBoxFilter, filters.SearchFilter]
-    serializer_class = CultMapSerializer
+    serializer_class = AdvancedCultMapSerializer
     bbox_filter_field = 'geometry'
     pagination_class = LargeResultsSetPagination

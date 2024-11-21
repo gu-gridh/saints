@@ -487,6 +487,26 @@ class CultMapSerializer(PlaceMapSerializer):
         geo_field = 'geometry'
 
 
+class AdvancedCultMapSerializer(PlaceMapSerializer):
+    ids = serializers.SerializerMethodField()
+
+    def get_ids(self, obj):
+        res = {}
+        ids = obj.relation_cult_place.all().values('id')
+        for id in ids:
+            cult = id['id']
+            if cult in res:
+                res[cult] += 1
+            elif cult is not None:
+                res[cult] = 1
+        return res
+
+    class Meta:
+        model = Place
+        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
+        geo_field = 'geometry'
+
+
 class SaintsMapSerializer(PlaceMapSerializer):
     ids = serializers.SerializerMethodField()
 

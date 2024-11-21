@@ -388,13 +388,11 @@ class CultTypesViewSet(OrderingMixin):
         level = self.request.query_params.get('level')
         queryset = models.CultType.objects.prefetch_related("parent").all()
         if parent is not None and parent != '':
+            # existing_types = models.Cult.objects.select_related("cult_type").values("cult_type").distinct()
+            # queryset = queryset.filter(parent__in=parent.split(','), id__in=existing_types).distinct()
             queryset = queryset.filter(parent__in=parent.split(','))
         if level is not None:
-            if level == "Subcategory":
-                existing_types = models.Cult.objects.select_related("cult_type").values("id").distinct()
-                queryset = queryset.filter(level=level, id__in=existing_types)
-            else:
-                queryset = queryset.filter(level=level)
+            queryset = queryset.filter(level=level)
         return queryset.order_by('name')
     serializer_class = CultTypeSerializer
     pagination_class = LargeResultsSetPagination
@@ -581,17 +579,17 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
                                      | Q(cult_type__parent__parent__in=types))
             queryset = queryset.filter(relation_cult_place__in=cultset).distinct()
 
-        if place_type is not None and place_type != 'null':
+        if place_type is not None and place_type != '':
             place_types = place_type.split(',')
             queryset = queryset.filter(Q(place_type__in=place_types) | Q(place_type__parent__in=place_types)).order_by('name')
 
-        if agent_type is not None and agent_type != 'null':
+        if agent_type is not None and agent_type != '':
             agent_types = agent_type.split(',')
             agentset = models.Agent.objects.filter(agent_type__in=agent_types)
             agentset = agentset.prefetch_related("relation_cult_place__relation_cult_agent__agent_type").prefetch_related("relation_cult_place__relation_other_agent__agent_type")
             queryset = queryset.filter(Q(relation_cult_place__relation_cult_agent__in=agentset) | Q(relation_cult_place__relationotheragent__agent_id__in=agentset)).distinct()
 
-        if range is not None:
+        if range is not None and range != '':
             queryset = queryset.prefetch_related("relation_cult_place")
             years = range.split(',')
             minyear = int(years[0])

@@ -3,8 +3,7 @@ from rest_framework.settings import api_settings
 from rest_framework_gis.filters import InBBoxFilter
 # from rest_framework_gis.pagination import GeoJsonPagination
 from django.contrib.gis.gdal.envelope import Envelope
-from django.db.models import Q, Prefetch
-from django.views.generic.detail import DetailView
+from django.db.models import Q
 from . import models
 from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
@@ -303,7 +302,7 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
                 queryset = queryset.filter(Q(name__startswith=first_letter)
                                            | Q(title__startswith=first_letter)
                                            | Q(author__startswith=first_letter))
-        return queryset.order_by('name')
+        return queryset
 
     def get_serializer_class(self):
         if self.detail is True:

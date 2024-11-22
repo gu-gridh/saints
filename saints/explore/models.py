@@ -299,7 +299,7 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
     in_parish = models.BooleanField(null=True, help_text="Is cult located in a parish?", default=False)
     parent = models.ForeignKey("self", on_delete=models.SET_NULL,
                                null=True, blank=True, related_name="cult_children")
-    associated = models.ManyToManyField("self", null=True, blank=True, related_name="cult_associated")
+    associated = models.ManyToManyField("self", blank=True)
     cult_uncertainty = models.BooleanField(null=True, help_text="Is cult uncertain?", default=False)
     type_uncertainty = models.BooleanField(null=True, help_text="Is type uncertain?", default=False)
     cult_type = models.ForeignKey(CultType, on_delete=models.RESTRICT,
@@ -343,19 +343,19 @@ class Source(EntityMixin, NotesMixin, DatesMixin):
         "N/A": "N/A"
     }
     name = models.CharField(max_length=255, help_text="Shortname")
-    title = models.CharField(max_length=300, blank=True)
+    title = models.CharField(max_length=300, blank=True, null=True)
     source_type = models.CharField(max_length=10, choices=SOURCE_TYPES)
-    specific_type = models.CharField(max_length=255, blank=True)
-    author = models.CharField(max_length=255, blank=True)
-    publisher = models.CharField(max_length=255, blank=True)
-    pub_place = models.CharField(max_length=255, blank=True)
-    pub_year = models.CharField(max_length=255, blank=True)
-    insource = models.TextField(blank=True)
-    archive = models.CharField(max_length=255, blank=True)
-    archive_name = models.CharField(max_length=255, blank=True)
-    pages = models.CharField(max_length=10, blank=True)
-    uri = models.URLField(blank=True)
-    libris_uri = models.URLField(blank=True)
+    specific_type = models.CharField(max_length=255, blank=True, null=True)
+    author = models.CharField(max_length=255, blank=True, null=True)
+    publisher = models.CharField(max_length=255, blank=True, null=True)
+    pub_place = models.CharField(max_length=255, blank=True, null=True)
+    pub_year = models.CharField(max_length=255, blank=True, null=True)
+    insource = models.TextField(blank=True, null=True)
+    archive = models.CharField(max_length=255, blank=True, null=True)
+    archive_name = models.CharField(max_length=255, blank=True, null=True)
+    pages = models.CharField(max_length=10, blank=True, null=True)
+    uri = models.URLField(blank=True, null=True)
+    libris_uri = models.URLField(blank=True, null=True)
 
     def __str__(self):
         return "|".join(filter(None, [self.name, self.author, self.pub_year]))

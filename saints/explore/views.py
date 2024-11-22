@@ -387,9 +387,11 @@ class CultTypesViewSet(OrderingMixin):
         level = self.request.query_params.get('level')
         queryset = models.CultType.objects.prefetch_related("parent").all()
         if parent is not None and parent != '':
-            # existing_types = models.Cult.objects.select_related("cult_type").values("cult_type").distinct()
-            # queryset = queryset.filter(parent__in=parent.split(','), id__in=existing_types).distinct()
             queryset = queryset.filter(parent__in=parent.split(','))
+            no_parent = queryset.prefetch_related("parent__parent").filter(parent__parent=None).exists()
+            if no_parent is False:
+                existing_types = models.Cult.objects.select_related("cult_type").values("cult_type").distinct()
+                queryset = queryset.filter(id__in=existing_types).distinct()
         if level is not None:
             queryset = queryset.filter(level=level)
         return queryset.order_by('name')

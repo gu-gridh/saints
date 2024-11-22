@@ -151,8 +151,7 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
             years = range.split(',')
             minyear = int(years[0])
             maxyear = int(years[1])
-            queryset = queryset.filter(minyear__gte=minyear,
-                                       maxyear__lte=maxyear)
+            queryset = queryset.filter(minyear__lte=maxyear, maxyear__gte=minyear)
         if cult_type is not None:
             types = cult_type.split(',')
             # queryset = queryset.prefetch_related("cult_type__parent")
@@ -212,8 +211,7 @@ class CultAdvancedViewSet(viewsets.ReadOnlyModelViewSet):
             years = range.split(',')
             minyear = int(years[0])
             maxyear = int(years[1])
-            queryset = queryset.filter(minyear__gte=minyear,
-                                       maxyear__lte=maxyear)
+            queryset = queryset.filter(minyear__lte=maxyear, maxyear__gte=minyear)
         return queryset.order_by('place__name')
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -496,8 +494,8 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 years = range.split(',')
                 minyear = int(years[0])
                 maxyear = int(years[1])
-                queryset = queryset.filter(relation_cult_place__minyear__gte=minyear,
-                                           relation_cult_place__maxyear__lte=maxyear)
+                queryset = queryset.filter(relation_cult_place__minyear__lte=maxyear,
+                                           relation_cult_place__maxyear__gte=minyear)
 
         elif layer == 'place':
             med_diocese = options.get('med_diocese')
@@ -586,9 +584,9 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
 
         if agent_type is not None and agent_type != '':
             agent_types = agent_type.split(',')
-            agentset = models.Agent.objects.filter(agent_type__in=agent_types)
-            agentset = agentset.prefetch_related("relation_cult_place__relation_cult_agent__agent_type", "relation_cult_place__relation_other_agent__agent_type")
-            queryset = queryset.filter(Q(relation_cult_place__relation_cult_agent__in=agentset) | Q(relation_cult_place__relationotheragent__agent_id__in=agentset)).distinct()
+            queryset = queryset.prefetch_related("relation_cult_place__relation_cult_agent__agent_type",
+                                                 "relation_cult_place__relationotheragent_set__agent__agent_type").filter(Q(relation_cult_place__relation_cult_agent__agent_type__in=agent_types)
+                                                                                                                         | Q(relation_cult_place__relationotheragent__agent__agent_type__in=agent_types)).distinct()
 
         if agent is not None and agent != '':
             agents = agent.split(',')
@@ -599,8 +597,8 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
             years = range.split(',')
             minyear = int(years[0])
             maxyear = int(years[1])
-            queryset = queryset.filter(relation_cult_place__minyear__gte=minyear,
-                                       relation_cult_place__maxyear__lte=maxyear)
+            queryset = queryset.filter(relation_cult_place__minyear__lte=maxyear,
+                                       relation_cult_place__maxyear__gte=minyear)
 
         if bbox is not None:
             bbox = bbox.strip().split(',')

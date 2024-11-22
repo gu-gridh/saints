@@ -509,9 +509,9 @@ class AdvancedCultMapSerializer(PlaceMapSerializer):
             agents = agent.split(',')
             ids = ids.filter(Q(relation_cult_agent__in=agents) | Q(relationotheragent__agent__in=agents)).distinct()
 
-        ids = ids.values('id')
+        ids = ids.values('cult_type')
         for id in ids:
-            cult = id['id']
+            cult = id['cult_type']
             if cult in res:
                 res[cult] += 1
             elif cult is not None:

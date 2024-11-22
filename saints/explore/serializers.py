@@ -500,11 +500,11 @@ class AdvancedCultMapSerializer(PlaceMapSerializer):
             types = type.split(',')
             ids = ids.filter(Q(cult_type__in=types)
                              | Q(cult_type__parent__in=types)
-                             | Q(cult_type__parent__parent__in=types))
+                             | Q(cult_type__parent__parent__in=types)).distinct()
         if agent_type is not None and agent_type != '':
             agent_types = agent_type.split(',')
             ids = ids.filter(Q(relation_cult_agent__agent_type__in=agent_types)
-                             | Q(relationotheragent__agent__agent_type__in=agent_types))
+                             | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
         if agent is not None and agent != '':
             agents = agent.split(',')
             ids = ids.filter(Q(relation_cult_agent__in=agents) | Q(relationotheragent__agent__in=agents)).distinct()

@@ -43,10 +43,10 @@ class AgentsViewSet(OrderingMixin):
         # range = options.get('range')
         queryset = models.Agent.objects.all().prefetch_related("agent_type").order_by('name')
         if mini is None:
-            queryset = queryset.prefetch_related("agentname_set").prefetch_related("relationcultagent_set__cult__cult_type").prefetch_related("relationcultagent_set__cult__place").prefetch_related("feastday_set")
-            queryset = queryset.select_related("created").select_related("modified")
-            queryset = queryset.prefetch_related("relationoffice_set__organization").prefetch_related("relationoffice_set__role")
-            queryset = queryset.prefetch_related("relationotheragent_set__role").prefetch_related("relationotheragent_set__cult__cult_type").prefetch_related("relationotheragent_set__cult__place").prefetch_related("relationotheragent_set__cult__relationcultagent_set")
+            queryset = queryset.prefetch_related("agentname_set", "relationcultagent_set__cult__cult_type", "relationcultagent_set__cult__place", "feastday_set")
+            queryset = queryset.select_related("created", "modified")
+            queryset = queryset.prefetch_related("relationoffice_set__organization", "relationoffice_set__role")
+            queryset = queryset.prefetch_related("relationotheragent_set__role", "relationotheragent_set__cult__cult_type", "relationotheragent_set__cult__place", "relationotheragent_set__cult__relationcultagent_set")
         if gender is not None and gender != '':
             queryset = queryset.filter(gender=gender).order_by('name')
         if agent_type is not None:
@@ -133,10 +133,10 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
         range = options.get('range')
         med_diocese = options.get('med_diocese')
         mini = options.get('mini')
-        queryset = models.Cult.objects.select_related("cult_type").select_related("cult_type__parent").select_related("place").select_related("created").select_related("modified").all()
+        queryset = models.Cult.objects.select_related("cult_type", "cult_type__parent", "place", "created", "modified").all()
         queryset = queryset.prefetch_related("relationcultagent_set__agent")
         if mini is None:
-            queryset = queryset.prefetch_related("place__parish__medival_organization").prefetch_related("place__place_type").prefetch_related("cult_children").prefetch_related("quote").prefetch_related("associated").prefetch_related("relationotheragent_set__agent")
+            queryset = queryset.prefetch_related("place__parish__medival_organization", "place__place_type", "cult_children", "quote", "associated", "relationotheragent_set__agent")
         if med_diocese is not None and med_diocese != '':
             if mini is not None:
                 queryset = queryset.prefetch_related("place__parish")
@@ -188,7 +188,7 @@ class CultAdvancedViewSet(viewsets.ReadOnlyModelViewSet):
         agent = options.get('agent')
         range = options.get('range')
         med_diocese = options.get('med_diocese')
-        queryset = models.Cult.objects.select_related("place").select_related("cult_type").all()
+        queryset = models.Cult.objects.select_related("place", "cult_type").all()
         # queryset = queryset.prefetch_related("place__parish__medival_organization").prefetch_related("place__place_type").prefetch_related("cult_children").prefetch_related("quote").prefetch_related("associated").prefetch_related("relationotheragent_set")
         if cult_type is not None and cult_type != '':
             types = cult_type.split(',')
@@ -198,13 +198,13 @@ class CultAdvancedViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.prefetch_related("place__place_type")
             queryset = queryset.filter(Q(place__place_type=place_type) | Q(place__place_type__parent=place_type))
         if med_diocese is not None and med_diocese != '':
-            queryset = queryset.prefetch_related("place__parish").prefetch_related("place__parish__medival_organization")
+            queryset = queryset.prefetch_related("place__parish", "place__parish__medival_organization")
             queryset = queryset.filter(place__parish__medival_organization_id=med_diocese)
         if agent_type is not None or agent is not None:
-            queryset = queryset.prefetch_related("relationcultagent_set__agent").prefetch_related("relationotheragent_set__agent")
+            queryset = queryset.prefetch_related("relationcultagent_set__agent", "relationotheragent_set__agent")
             if agent is not None and agent != '':
                 agents = agent.split(',')
-                queryset = queryset.filter(Q(relation_cult_agent__in=agents) | Q(relationotheragent__in=agents)).distinct()
+                queryset = queryset.filter(Q(relation_cult_agent__in=agents) | Q(relationotheragent__agent__in=agents)).distinct()
             if agent_type is not None and agent_type != '':
                 agent_types = agent_type.split(',')
                 queryset = queryset.filter(Q(relationcultagent__agent__agent_type__in=agent_types) | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
@@ -231,7 +231,7 @@ class PlacesViewSet(OrderingMixin):
         by filtering against a `type` query parameter in the URL.
         """
         # optimize for mini search
-        queryset = models.Place.objects.filter(exclude=False).select_related("place_type").select_related("created").select_related("modified").select_related("parish").select_related("parent")
+        queryset = models.Place.objects.filter(exclude=False).select_related("place_type", "created", "modified", "parish", "parent")
         queryset = queryset.prefetch_related("relation_cult_place__cult_type").order_by('name')
         options = self.request.query_params
         place_type = options.get('type')
@@ -267,7 +267,7 @@ class PlaceChildrenViewSet(OrderingMixin):
         by filtering against a `type` query parameter in the URL.
         """
         # optimize for mini search
-        queryset = models.Place.objects.filter(exclude=False).select_related("parent").prefetch_related("relation_cult_place__cult_type").prefetch_related("place_type").select_related("parent__place_type")
+        queryset = models.Place.objects.filter(exclude=False).select_related("parent", "parent__place_type").prefetch_related("relation_cult_place__cult_type", "place_type")
         id = self.request.query_params.get('id')
         if id is not None:
             queryset = queryset.filter(parent=id).order_by('name')
@@ -287,7 +287,7 @@ class SourcesViewSet(viewsets.ReadOnlyModelViewSet):
         and/or `letter` query parameter in the URL.
         """
         if self.detail is True and self.request.query_params.get('mini') is None:
-            queryset = models.Source.objects.prefetch_related("source_quote__cult_quote__place").prefetch_related("source_quote__cult_quote__cult_type").prefetch_related("source_quote__cult_quote")
+            queryset = models.Source.objects.prefetch_related("source_quote__cult_quote__place", "source_quote__cult_quote__cult_type", "source_quote__cult_quote")
         # .prefetch_related(Prefetch(
         #   'source_quote__cult_quote',
         #     'agent')
@@ -333,7 +333,7 @@ class QuotesViewSet(viewsets.ReadOnlyModelViewSet):
         if source is not None:
             queryset = queryset.filter(source=source)
         if mini is None:
-            queryset = queryset.prefetch_related('cult_quote__relation_cult_agent').prefetch_related("cult_quote__place").prefetch_related("cult_quote__cult_type")
+            queryset = queryset.prefetch_related('cult_quote__relation_cult_agent', 'cult_quote__place', 'cult_quote__cult_type')
         return queryset.order_by('source__name')
 
     def get_serializer_class(self):
@@ -587,7 +587,7 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
         if agent_type is not None and agent_type != '':
             agent_types = agent_type.split(',')
             agentset = models.Agent.objects.filter(agent_type__in=agent_types)
-            agentset = agentset.prefetch_related("relation_cult_place__relation_cult_agent__agent_type").prefetch_related("relation_cult_place__relation_other_agent__agent_type")
+            agentset = agentset.prefetch_related("relation_cult_place__relation_cult_agent__agent_type", "relation_cult_place__relation_other_agent__agent_type")
             queryset = queryset.filter(Q(relation_cult_place__relation_cult_agent__in=agentset) | Q(relation_cult_place__relationotheragent__agent_id__in=agentset)).distinct()
 
         if agent is not None and agent != '':

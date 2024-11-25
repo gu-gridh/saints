@@ -145,7 +145,7 @@ class RelationCultAgent(models.Model):
 class RelationOffice(EntityMixin, DatesMixin):
     agent = models.ForeignKey("Agent", on_delete=models.RESTRICT)
     organization = models.ForeignKey("Organization", on_delete=models.RESTRICT)
-    role = models.ForeignKey(AgentType, limit_choices_to={"level": "Type of Involvement"}, on_delete=models.RESTRICT)
+    role = models.ForeignKey(AgentType, limit_choices_to={"level": "Type of Agent"}, on_delete=models.RESTRICT)
 
 
 class RelationOtherAgent(models.Model):

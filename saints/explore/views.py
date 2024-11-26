@@ -154,7 +154,6 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(minyear__lte=maxyear, maxyear__gte=minyear)
         if cult_type is not None:
             types = cult_type.split(',')
-            # queryset = queryset.prefetch_related("cult_type__parent")
             queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))
         return queryset.order_by('place__name')
 
@@ -255,7 +254,7 @@ class PlacesViewSet(OrderingMixin):
         return api_settings.DEFAULT_PAGINATION_CLASS
 
     pagination_class = property(fget=get_pagination_class)
-    search_fields = ['name']
+    search_fields = ['name', 'placename__name']
 
 
 class PlaceChildrenViewSet(OrderingMixin):
@@ -349,7 +348,7 @@ class QuotesViewSet(viewsets.ReadOnlyModelViewSet):
 
     pagination_class = property(fget=get_pagination_class)
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['quote_transcription', 'translation']
+    search_fields = ['quote_transcription', 'translation', 'comment']
     ordering_fields = ['source__name']
     ordering = ['source__name']
 
@@ -371,7 +370,7 @@ class PlaceTypesViewSet(OrderingMixin):
         return queryset
     serializer_class = PlaceTypeSerializer
     pagination_class = LargeResultsSetPagination
-    search_fields = ['name','name_sv','name_fi']
+    search_fields = ['name', 'name_sv', 'name_fi']
 
 
 class CultTypesViewSet(OrderingMixin):
@@ -453,10 +452,13 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                     queryset = queryset.select_related("parish").filter(parish__medival_organization_id=med_diocese)
                 if ids is not None and ids != 'null':
                     types = ids.split(',')
-                    cultset = cultset.filter(Q(cult_type__in=types)
-                                             | Q(cult_type__parent__in=types)
-                                             | Q(cult_type__parent__parent__in=types))
-                queryset = queryset.filter(relation_cult_place__in=cultset).distinct()
+                    queryset = queryset.filter(Q(relation_cult_place__cult_type__in=types)
+                                               | Q(relation_cult_place__cult_type__parent__in=types)
+                                               | Q(relation_cult_place__cult_type__parent__parent__in=types))
+                    #cultset = cultset.filter(Q(cult_type__in=types)
+                                            # | Q(cult_type__parent__in=types)
+                                            # | Q(cult_type__parent__parent__in=types))
+                #queryset = queryset.filter(relation_cult_place__in=cultset).distinct()
             else:
                 gender = options.get('gender')
                 agents = options.get('agent')
@@ -500,7 +502,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
         elif layer == 'place':
             med_diocese = options.get('med_diocese')
             if search is not None:
-                queryset = queryset.filter(name__icontains=search).order_by('name')
+                queryset = queryset.filter(Q(name__icontains=search) | Q(placename__name__icontains=search)).distinct()
             if zoom is not None and zoom != 'null' and zoom < 13 and ids is None:
                 if zoom < 9:
                     queryset = queryset.filter(place_type__parent__in=[1,2])

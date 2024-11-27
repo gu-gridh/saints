@@ -74,7 +74,7 @@ class AgentsViewSet(OrderingMixin):
         return api_settings.DEFAULT_PAGINATION_CLASS
 
     pagination_class = property(fget=get_pagination_class)
-    search_fields = ['name', 'agentname__name']
+    search_fields = ['name', 'agentname__name', 'feastday__day']
 
 
 class SaintsViewSet(AgentsViewSet):
@@ -172,7 +172,7 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = property(fget=get_pagination_class)
-    search_fields = ['place__name', 'cult_type__name', 'relation_cult_agent__name', 'relationotheragent__agent__name']
+    search_fields = ['place__name', 'cult_type__name', 'relation_cult_agent__name', 'relationotheragent__agent__name', 'feast_day']
     ordering_fields = ['place__name', 'cult_type__name']
     ordering = ['place__name']
 

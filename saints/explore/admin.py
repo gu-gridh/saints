@@ -219,7 +219,7 @@ class AgentAdmin(EntityAdminMixin, ModelAdmin):
     #    models.TextField: {"widget": richtext_widget},
     #}
     list_display = ["id", "name", "gender", "not_before", "saint", "updated"]
-    search_fields = ["id", "name", "agentname__name"]
+    search_fields = ["id", "name", "agentname__name", "feastday__day"]
     filter_horizontal = ["agent_type"]
     fieldsets = [
         (

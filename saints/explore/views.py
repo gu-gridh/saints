@@ -47,7 +47,7 @@ class AgentsViewSet(OrderingMixin):
             queryset = queryset.select_related("created", "modified")
             queryset = queryset.prefetch_related("relationoffice_set__organization", "relationoffice_set__role")
             queryset = queryset.prefetch_related("relationotheragent_set__role", "relationotheragent_set__cult__cult_type", "relationotheragent_set__cult__place", "relationotheragent_set__cult__relationcultagent_set")
-        if gender is not None and gender != '':
+        if gender is not None and gender != '' and gender != 'all':
             queryset = queryset.filter(gender=gender).order_by('name')
         if agent_type is not None:
             types = agent_type.split(',')
@@ -467,7 +467,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                     agentset = models.Agent.objects.filter(Q(name__icontains=search) | Q(agentname__name__icontains=search))
                 else:
                     agentset = models.Agent.objects.all()
-                if gender is not None and gender != '':
+                if gender is not None and gender != '' and gender != 'all':
                     agentset = agentset.filter(gender=gender).order_by('name')
                 if ids is not None and ids != 'null':
                     types = ids.split(',')

@@ -186,7 +186,7 @@ class CultAdvancedViewSet(viewsets.ReadOnlyModelViewSet):
         agent = options.get('agent')
         range = options.get('range')
         med_diocese = options.get('med_diocese')
-        queryset = models.Cult.objects.select_related("place", "cult_type").all() # .prefetch_related("relation_other_place").all()
+        queryset = models.Cult.objects.select_related("place", "cult_type").prefetch_related("relation_other_place").all()
         # queryset = queryset.prefetch_related("place__parish__medival_organization").prefetch_related("place__place_type").prefetch_related("cult_children").prefetch_related("quote").prefetch_related("associated").prefetch_related("relationotheragent_set")
         if cult_type is not None and cult_type != '':
             types = cult_type.split(',')
@@ -590,10 +590,10 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
         if agent_type is not None and agent_type != '':
             agent_types = agent_type.split(',')
             queryset = queryset.prefetch_related("relation_cult_place__relation_cult_agent__agent_type",
-                                                 "relation_cult_place__relationotheragent_set__agent__agent_type") #,
+                                                 "relation_cult_place__relationotheragent_set__agent__agent_type").filter(relation_cult_place__relation_cult_agent__agent_type__in=agent_types)
+ #,
                                                  #"relation_other_place__relation_cult_agent__agent_type",
-                                                 #"relation_other_place__relation_otheragent_set__agent__agent_type").filter(Q(relation_cult_place__relation_cult_agent__agent_type__in=agent_types)
-
+                                                 #"relation_other_place__relation_otheragent_set__agent__agent_type")
         if agent is not None and agent != '':
             agents = agent.split(',')
             queryset = queryset.prefetch_related("relation_cult_place__relation_cult_agent").filter(Q(relation_cult_place__relation_cult_agent__in=agents) | Q(relation_cult_place__relationotheragent__agent__in=agents)).distinct()

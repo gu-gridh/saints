@@ -8,6 +8,7 @@ from .models import Agent, AgentType, AgentName, Place, PlaceName, PlaceType, \
     RelationDigitalResource, Iconographic, RelationMBResource, \
     RelationOtherAgent, RelationOtherPlace
 import requests
+from itertools import chain
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -451,12 +452,19 @@ class CultMapSerializer(PlaceMapSerializer):
 
     def get_ids(self, obj):
         type = self.context['request'].query_params.get('ids')
+        range = self.context['request'].query_params.get('range')
         res = {}
         if type is not None and type != 'null':
             types = type.split(',')
             ids = obj.relation_cult_place.all().filter(Q(cult_type__in=types)
                                                        | Q(cult_type__parent__in=types)
-                                                       | Q(cult_type__parent__parent__in=types)).values('id', 'cult_type', 'cult_type__parent', 'cult_type__parent__parent')
+                                                       | Q(cult_type__parent__parent__in=types))
+            if range is not None and range != '':
+                years = range.split(',')
+                minyear = int(years[0])
+                maxyear = int(years[1])
+                ids = ids.filter(minyear__lte=maxyear, maxyear__gte=minyear)
+            ids = ids.values('id', 'cult_type', 'cult_type__parent', 'cult_type__parent__parent')
             for type in types:
                 res[type] = 0
             for id in ids:
@@ -472,7 +480,13 @@ class CultMapSerializer(PlaceMapSerializer):
             # for type in types:
             #    res[type] = len(list((filter(lambda x: x["cult_type"] == int(type) or x["cult_type__parent"] or x["cult_type__parent__parent"] == int(type), ids))))
         else:
-            ids = obj.relation_cult_place.all().values('id', 'cult_type')
+            if range is not None and range != '':
+                years = range.split(',')
+                minyear = int(years[0])
+                maxyear = int(years[1])
+                ids = obj.relation_cult_place.filter(minyear__lte=maxyear, maxyear__gte=minyear).values('id', 'cult_type')
+            else:
+                ids = obj.relation_cult_place.all().values('id', 'cult_type')
             for id in ids:
                 cult_type = id['cult_type']
                 if cult_type in res:
@@ -495,20 +509,34 @@ class AdvancedCultMapSerializer(PlaceMapSerializer):
         type = self.context['request'].query_params.get('type')
         agent_type = self.context['request'].query_params.get('agent_type')
         agent = self.context['request'].query_params.get('agent')
-        ids = obj.relation_cult_place.all()
+        ids_rel = obj.relation_cult_place.only("cult_type", "relation_cult_agent", "relationotheragent_set")
+        ids_other = obj.relation_other_place.only("cult_type", "relation_cult_agent", "relationotheragent_set")
         if type is not None and type != '':
             types = type.split(',')
-            ids = ids.filter(Q(cult_type__in=types)
-                             | Q(cult_type__parent__in=types)
-                             | Q(cult_type__parent__parent__in=types)).distinct()
+            ids_rel = ids_rel.prefetch_related('cult_type', 'cult_type__parent', 'cult_type__parent__parent').filter(Q(cult_type__in=types)
+                                     | Q(cult_type__parent__in=types)
+                                     | Q(cult_type__parent__parent__in=types)).distinct()
+            ids_other = ids_other.prefetch_related('cult_type', 'cult_type__parent', 'cult_type__parent__parent').filter(Q(cult_type__in=types)
+                                         | Q(cult_type__parent__in=types)
+                                         | Q(cult_type__parent__parent__in=types)).distinct()
         if agent_type is not None and agent_type != '':
             agent_types = agent_type.split(',')
-            ids = ids.filter(Q(relation_cult_agent__agent_type__in=agent_types)
-                             | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
+            ids_rel = ids_rel.prefetch_related('relation_cult_agent__agent_type',
+                                               'relationotheragent_set__agent__agent_type').filter(Q(relation_cult_agent__agent_type__in=agent_types)
+                                                                                                   | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
+            ids_other = ids_other.prefetch_related('relation_cult_agent__agent_type',
+                                               'relationotheragent_set__agent__agent_type').filter(Q(relation_cult_agent__agent_type__in=agent_types)
+                                         | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
         if agent is not None and agent != '':
             agents = agent.split(',')
-            ids = ids.filter(Q(relation_cult_agent__in=agents) | Q(relationotheragent__agent__in=agents)).distinct()
+            ids_rel = ids_rel.prefetch_related('relation_cult_agent',
+                                               'relationotheragent_set__agent').filter(Q(relation_cult_agent__in=agents)
+                                                                                       | Q(relationotheragent__agent__in=agents)).distinct()
+            ids_other = ids_other.prefetch_related('relation_cult_agent',
+                                                   'relationotheragent_set__agent').filter(Q(relation_cult_agent__in=agents)
+                                                                                           | Q(relationotheragent__agent__in=agents)).distinct()
 
+        ids = ids_rel.union(ids_other)
         ids = ids.values('cult_type')
         for id in ids:
             cult = id['cult_type']

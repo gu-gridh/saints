@@ -17,7 +17,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['127.0.0.1','localhost','saints.dh.gu.se']
 
-CSRF_TRUSTED_ORIGINS = ['https://saints.dh.gu.se']
+CSRF_TRUSTED_ORIGINS = ['https://saints.dh.gu.se','http://localhost:8080']
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -37,3 +37,4 @@ DATABASES = {
 }
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1500
+

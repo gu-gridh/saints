@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib.gis.db import models as gis_models
 from django.contrib.gis.geos import Point
 from ckeditor.fields import RichTextField
+import re
 
 # Create your models here.
 
@@ -22,6 +23,14 @@ LANGUAGES = {
     "nor": "Norwegian",
     "rus": "Russian",
     "swe": "Swedish",
+}
+
+TIME_PERIOD_MAP = {
+    "0-0": 1050,
+    "1-1": 1593,
+    "2-2": 1800,
+    "3-3": 1350,
+    "5-5": 1150
 }
 
 
@@ -284,9 +293,9 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
         "Brown": "Brown",
         "White": "White",
     }
-    time_period = models.CharField(max_length=255, blank=True, verbose_name="Function time-period")
-    minyear = models.PositiveSmallIntegerField(default=0)
-    maxyear = models.PositiveSmallIntegerField(default=0)
+    time_period = models.CharField(max_length=255, blank=True, verbose_name="Function time-period", help_text="Format YYYY or YYYY_YYYY or YYYY-YYYY_YYYY-YYYY or encoded like 3-3_2-2.")
+    minyear = models.PositiveSmallIntegerField(default=0, help_text="Automatically filled with lowest value of Function time-period during save.")
+    maxyear = models.PositiveSmallIntegerField(default=0, help_text="Automatically filled with highest value of Function time-period during save.")
     production_date = models.CharField(max_length=21, blank=True)
     extant = models.CharField(max_length=10, choices=EXTANT_TYPES, default="N/A")
     colour = models.CharField(max_length=10, choices=COLOUR)
@@ -307,6 +316,43 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
     feast_day = models.CharField(max_length=21, blank=True)
     quote = models.ManyToManyField("Quote", blank=True, related_name="cult_quote")
     relation_iconographic = models.ManyToManyField("Iconographic", through=RelationIconographic, blank=True)
+
+    def translate_time_period(self, start):
+        # Split the time period by underscores
+        result = 0
+        time_periods = self.time_period.split('_')
+        if len(time_periods) == 2:
+            if start:
+                period = time_periods[0]
+            else:
+                period = time_periods[1]
+        else:
+            period = self.time_period
+
+        if period in TIME_PERIOD_MAP:
+            result = TIME_PERIOD_MAP[period]
+        else:
+            date_only = re.match(r"^(\d+)(-\d+-\d+)?$", period)
+            range_match = re.match(r"^(\d+)-(\d+)$", period)
+            if date_only:
+                result = int(date_only.group(1))
+            else:
+                if range_match and start:
+                    result = int(range_match.group(1))
+                elif range_match:
+                    result = int(range_match.group(2))
+
+        return result
+
+    def save(self, *args, **kwargs):
+        # Automatically compute the min_year field when saving
+        new_start = self.translate_time_period(True)
+        new_end = self.translate_time_period(False)
+        if self.minyear == 0 or self.minyear != new_start:
+            self.minyear = new_start
+        if self.maxyear == 0 or self.maxyear != new_end:
+            self.maxyear = new_end
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return "|".join(filter(None, [self.place.name, self.cult_type.name]))

@@ -380,7 +380,7 @@ class Parish(EntityMixin, NotesMixin, DatesMixin):
         return "|".join(filter(None, [self.name, self.medival_organization.name]))
 
 
-class Source(EntityMixin, NotesMixin, DatesMixin):
+class Source(EntityMixin, NotesMixin):
     SOURCE_TYPES = {
         "Tryckt": "Tryckt",
         "Ms": "Ms",
@@ -402,6 +402,9 @@ class Source(EntityMixin, NotesMixin, DatesMixin):
     pages = models.CharField(max_length=10, blank=True, null=True)
     uri = models.URLField(blank=True, null=True)
     libris_uri = models.URLField(blank=True, null=True)
+    not_after = models.CharField(max_length=30, blank=True, verbose_name="End date")
+    not_before = models.CharField(max_length=30, blank=True, verbose_name="Dating Archive/Manuscript")
+    date_note = models.TextField(blank=True)
 
     def __str__(self):
         return "|".join(filter(None, [self.name, self.author, self.pub_year]))

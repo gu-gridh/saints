@@ -305,6 +305,12 @@ class CultMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'place', 'cult_type', 'relation_cult_agent', 'minyear', 'maxyear']
 
 
+class CultMiniPlaceSerializer(CultMiniSerializer):
+    class Meta:
+        model = Cult
+        fields = ['id', 'place', 'cult_type', 'relation_cult_agent', 'minyear', 'maxyear', 'place_uncertainty']
+
+
 class CultSerializer(serializers.ModelSerializer):
     created = UserSerializer(read_only=True)
     modified = UserSerializer(read_only=True)
@@ -435,7 +441,7 @@ class PlaceSerializer(serializers.ModelSerializer):
     place_type = PlaceTypeMiniSerializer(read_only=True)
     parent = PlaceMiniSerializer(read_only=True)
     quote = QuoteMiniSerializer(read_only=True, many=True)
-    relation_cult_place = CultMiniSerializer(read_only=True, many=True)
+    relation_cult_place = CultMiniPlaceSerializer(read_only=True, many=True)
     relation_other_place = RelationOtherPlaceCultSerializer(read_only=True, many=True, source='relationotherplace_set')
     place_names = serializers.SerializerMethodField()
 

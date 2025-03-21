@@ -354,7 +354,7 @@ class RelationOtherCultSerializer(serializers.ModelSerializer):
 
 
 class RelationOtherPlaceCultSerializer(serializers.ModelSerializer):
-    cult = CultMiniSerializer(read_only=True)
+    cult = CultMiniPlaceSerializer(read_only=True)
     role = PlaceTypeMiniSerializer(read_only=True)
 
     class Meta:
@@ -420,14 +420,14 @@ class PlaceChildrenSerializer(serializers.ModelSerializer):
             relations = self.relation_cult_place.all()
         else:
             relations = None
-        return CultMiniSerializer(relations, read_only=True, many=True).data
+        return CultMiniPlaceSerializer(relations, read_only=True, many=True).data
 
     def get_relation_other_place(obj, self):
         if self.parent.place_type.parent.id in [3, 4, 5, 7, 10, 11]:
             relations = self.relation_other_place.all()
         else:
             relations = None
-        return CultMiniSerializer(relations, read_only=True, many=True).data
+        return CultMiniPlaceSerializer(relations, read_only=True, many=True).data
 
     class Meta:
         model = Place

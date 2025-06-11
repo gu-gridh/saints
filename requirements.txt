@@ -1,4 +1,4 @@
-psycopg<4.0
+psycopg[binary,pool]<4.0
 python-dotenv<1.1
 Django<5.1
 djangorestframework==3.15.2

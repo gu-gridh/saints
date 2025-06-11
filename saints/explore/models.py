@@ -146,7 +146,7 @@ class RelationCultAgent(models.Model):
     cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
     agent = models.ForeignKey("Agent", on_delete=models.RESTRICT)
     agent_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is Agent uncertain?", default=False)
-    agent_main = models.BooleanField(blank=True)
+    agent_main = models.BooleanField(blank=True, default=True)
     agent_alternative = models.CharField(max_length=3, blank=True, null=True, choices=ALTERNATIVES)
     updated = models.DateField(auto_now=True)
 

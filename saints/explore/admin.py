@@ -169,8 +169,15 @@ class RelationOtherPlaceInline2(admin.TabularInline):
 class RelationCultAgentInline(admin.TabularInline):
     extra = 0
     model = RelationCultAgent
-    fields = ["agent", "agent_main", "agent_alternative"]
+    fields = ["agent", "agent_uncertainty", "agent_main", "agent_alternative"]
     autocomplete_fields = ["agent"]
+
+
+class RelationAgentCultInline(admin.TabularInline):
+    extra = 0
+    model = RelationCultAgent
+    fields = ["cult", "agent_uncertainty", "agent_main", "agent_alternative"]
+    autocomplete_fields = ["cult"]
 
 
 class RelationOtherAgentInline(admin.TabularInline):
@@ -259,6 +266,7 @@ class AgentAdmin(EntityAdminMixin, ModelAdmin):
         AgentNameInline,
         FeastDayInline,
         RelationOfficeInline,
+        RelationAgentCultInline,
         RelationOtherCultInline,
     ]
     ordering = ["name"]

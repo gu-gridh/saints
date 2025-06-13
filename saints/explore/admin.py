@@ -490,16 +490,15 @@ class ParishAdmin(EntityAdminMixin, ModelAdmin):
 class SourceAdmin(EntityAdminMixin, ModelAdmin):
     model = Source
     list_display = ["id", "name", "author", "pub_year", "source_type", "updated"]
-    search_fields = ["id", "name", "title", "author"]
+    search_fields = ["id", "name", "title", "author", "archive", "archive_name"]
     readonly_fields = ["id", "created_by", "modified_by", "updated"]
     fieldsets = [
         (
             None,
             {
-                "fields": ["id", "name", "title", "source_type", 
+                "fields": ["id", "name", "title", "source_type",
                            "specific_type", "archive", "archive_name",
-                           "author", "publisher", "pub_place", "pub_year", "pages",
-                           "insource"],
+                           "author", "publisher", "pub_place", "pub_year", "pages", "insource"],
             }
         ),
         (

@@ -348,7 +348,7 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
             None,
             {
                 "fields": ["cult_uncertainty", "cult_type", "type_uncertainty",
-                           "extant", "place", "place_uncertainty", "placement", "placement_uncertainty",
+                           "extant", "colour", "place", "place_uncertainty", "placement", "placement_uncertainty",
                            "in_parish", "feast_day"],
             }
         ),

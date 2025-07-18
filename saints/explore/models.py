@@ -298,7 +298,7 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
     maxyear = models.PositiveSmallIntegerField(default=0, help_text="Automatically filled with highest value of Function time-period during save.")
     production_date = models.CharField(max_length=21, blank=True)
     extant = models.CharField(max_length=10, choices=EXTANT_TYPES, default="N/A")
-    colour = models.CharField(max_length=10, choices=COLOUR)
+    colour = models.CharField(max_length=10, choices=COLOUR, blank=True)
     placement = models.CharField(max_length=255, blank=True)
     placement_uncertainty = models.BooleanField(null=True, help_text="Is placement uncertain?", default=False)
     place = models.ForeignKey(Place, on_delete=models.RESTRICT, null=True, related_name="relation_cult_place")

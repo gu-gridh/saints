@@ -497,8 +497,8 @@ class ParishAdmin(EntityAdminMixin, ModelAdmin):
 @admin.register(Source)
 class SourceAdmin(EntityAdminMixin, ModelAdmin):
     model = Source
-    list_display = ["id", "name", "author", "pub_year", "source_type", "specific_type", "updated"]
-    search_fields = ["id", "name", "title", "author", "archive", "archive_name", "specific_type"]
+    list_display = ["id", "name", "author", "pub_year", "source_type", "specific_type", "not_before", "updated"]
+    search_fields = ["id", "name", "title", "author", "archive", "archive_name", "specific_type", "not_before"]
     readonly_fields = ["id", "created_by", "modified_by", "updated"]
     fieldsets = [
         (

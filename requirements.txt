@@ -6,7 +6,7 @@ djangorestframework-gis<1.2
 django-cors-headers<5
 django-filter<25
 # django-formset<1.5
-django-ckeditor
+django-ckeditor==6.7.1
 gunicorn==23.0.0
 nh3<1.0
 requests<2.33

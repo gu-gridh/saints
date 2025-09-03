@@ -119,7 +119,8 @@ class CultType(TypeMixin):
         "Subcategory": "Subcategory",
     }
     level = models.CharField(max_length=20, choices=CULT_TYPES)
-    parent = models.ForeignKey("self", on_delete=models.RESTRICT, null=True, blank=True)
+    parent = models.ForeignKey("self", on_delete=models.RESTRICT, null=True,
+                               blank=True)
     aat = models.URLField(blank=True)
     wikidata = models.URLField(blank=True)
 
@@ -143,12 +144,22 @@ class RelationCultAgent(models.Model):
         # Keep for now
         "Yes": "Yes",
     }
-    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT)
-    agent = models.ForeignKey("Agent", on_delete=models.RESTRICT)
-    agent_uncertainty = models.BooleanField(blank=True, null=True, help_text="Is Agent uncertain?", default=False)
+    cult = models.ForeignKey("Cult", on_delete=models.RESTRICT, db_index=True)
+    agent = models.ForeignKey("Agent", on_delete=models.RESTRICT,
+                              db_index=True)
+    agent_uncertainty = models.BooleanField(blank=True, null=True,
+                                            help_text="Is Agent uncertain?",
+                                            default=False)
     agent_main = models.BooleanField(blank=True, default=True)
-    agent_alternative = models.CharField(max_length=3, blank=True, null=True, choices=ALTERNATIVES)
+    agent_alternative = models.CharField(max_length=3, blank=True, null=True,
+                                         choices=ALTERNATIVES)
     updated = models.DateField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["agent", "cult"]),
+            models.Index(fields=["cult", "agent"]),
+        ]
 
 
 class RelationOffice(EntityMixin, DatesMixin):
@@ -402,8 +413,10 @@ class Source(EntityMixin, NotesMixin):
     pages = models.CharField(max_length=10, blank=True, null=True)
     uri = models.URLField(blank=True, null=True)
     libris_uri = models.URLField(blank=True, null=True)
-    not_after = models.CharField(max_length=30, blank=True, verbose_name="End date")
-    not_before = models.CharField(max_length=30, blank=True, verbose_name="Dating Archive/Manuscript")
+    not_after = models.CharField(max_length=30, blank=True,
+                                 verbose_name="End date")
+    not_before = models.CharField(max_length=30, blank=True,
+                                  verbose_name="Dating Archive/Manuscript")
     date_note = models.TextField(blank=True)
 
     def __str__(self):

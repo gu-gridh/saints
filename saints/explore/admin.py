@@ -1,19 +1,13 @@
-from typing import Any
 from django.contrib import admin
-from .models import *
+from .models import Cult, Agent, Place, Source, Quote, Organization, Parish, AgentName, OrganizationName, PlaceName, CultType, AgentType, OrganizationType, PlaceType, ParishName, FeastDay, Iconographic, RelationCultAgent, RelationOtherAgent, RelationOtherPlace, RelationQuote, RelationOffice, RelationDigitalResource, RelationIconographic, RelationMBResource
 from .forms import CultTypeForm
-#from formset.richtext import controls
-#from formset.richtext.widgets import RichTextarea
 from django.contrib.gis import admin as gis_admin
 from django.conf import settings
-from django.utils.html import format_html
+from django.urls import reverse
+from django.utils.html import format_html, format_html_join
+from django.utils.http import urlencode
 
-
-#richtext_widget = RichTextarea(control_elements=[
-#    controls.Bold(),
-#    controls.Italic(),
-#    controls.TextColor(['text-red', 'text-green', 'text-blue']),
-#])
+RELATION_INLINE_THRESHOLD = 100
 
 
 # Register your models here.
@@ -112,6 +106,7 @@ class CultInline2(admin.TabularInline):
     fields = ["id", "cult"]
     autocomplete_fields = ["cult"]
 
+
 class PlaceInline(admin.TabularInline):
     extra = 0
     model = Place
@@ -179,6 +174,14 @@ class RelationAgentCultInline(admin.TabularInline):
     fields = ["cult", "agent_uncertainty", "agent_main", "agent_alternative"]
     autocomplete_fields = ["cult"]
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related(
+            "cult",
+            "cult__place",
+            "cult__cult_type",
+        )
+
 
 class RelationOtherAgentInline(admin.TabularInline):
     extra = 0
@@ -222,54 +225,59 @@ class FeastDayInline(admin.TabularInline):
 @admin.register(Agent)
 class AgentAdmin(EntityAdminMixin, ModelAdmin):
     model = Agent
-    #formfield_overrides = {
-    #    models.TextField: {"widget": richtext_widget},
-    #}
     list_display = ["id", "name", "gender", "not_before", "saint", "updated"]
     search_fields = ["id", "name", "agentname__name", "feastday__day"]
     filter_horizontal = ["agent_type"]
-    fieldsets = [
-        (
-            None,
-            {
-                "fields": ["name", "saint", "agent_type", "gender",
-                           "attributes"],
-            }
-        ),
-        (
-            "Date information",
-            {
-                "fields": ["not_before"],
-            },
-        ),
-        (
-            "Comments",
-            {
-                "fields": ["comment", "notes"],
-            }
-        ),
-        (
-            "URIs",
-            {
-                "fields": ["uri", "iconclass", "wikidata"],
-            },
-        ),
-        (
-            "Editing information",
-            {
-                "fields": ["created_by", "modified_by", "updated"],
-            },
+    readonly_fields = ["created_by", "modified_by", "updated",
+                       "related_cults_overview"]
 
-        ),
+    fieldsets = [
+        (None,
+         {"fields": ["name", "saint", "agent_type", "gender", "attributes"]}),
+        ("Date information",
+         {"fields": ["not_before"]}),
+        ("Comments",
+         {"fields": ["comment", "notes"]}),
+        ("URIs",
+         {"fields": ["uri", "iconclass", "wikidata"]}),
+        ("Editing information",
+         {"fields": ["created_by", "modified_by", "updated"]}),
+        ("Relation Cult Agents",
+         {"fields": ["related_cults_overview"]}),
     ]
     inlines = [
         AgentNameInline,
         FeastDayInline,
         RelationOfficeInline,
-        RelationAgentCultInline,
         RelationOtherCultInline,
     ]
     ordering = ["name"]
+
+    @admin.display(description="Relation Cult Agents")
+    def related_cults_overview(self, obj):
+        if not obj.pk:
+            return "-"
+        count = RelationCultAgent.objects.filter(agent=obj).count()
+        url = (
+            reverse("admin:explore_relationcultagent_changelist") + "?" +
+            urlencode({"agent__id__exact": obj.pk})
+        )
+        return format_html(
+            "Total: <b>{}</b> — "
+            '<a href="{}">open list of related cult manifestions</a> ',
+            count, url
+        )
+
+    # Conditionally attach the heavy inlines only when small enough
+    def get_inline_instances(self, request, obj=None):
+        instances = super().get_inline_instances(request, obj)
+        if not obj:
+            return instances
+        count = RelationCultAgent.objects.filter(agent=obj).only("id").count()
+        if count <= RELATION_INLINE_THRESHOLD:
+            instances.append(RelationCultAgentInline(self.model,
+                                                     self.admin_site))
+        return instances
 
 
 @admin.register(Place)
@@ -279,60 +287,85 @@ class PlaceAdmin(EntityAdminMixin, ModelAdmin, gis_admin.GISModelAdmin):
     search_fields = ["id", "name", "placename__name"]
     autocomplete_fields = ["parent", "parish"]
     # raw_id_fields = ["quote"]
-    readonly_fields = ["id", "children", "created_by", "modified_by", "updated"]
+    readonly_fields = ["id", "children", "created_by", "modified_by",
+                       "updated", "related_cults_overview"]
 
     fieldsets = [
-        (
-            None,
-            {
-                "fields": ["id", "name", "place_type", "certainty_type",
-                           "type_indication", "municipality", "county",
-                           "country", "certainty", "exclude", "geometry"],
-            }
-        ),
-        (
-            "Place relations",
-            {
-                "fields": ["parent", "parish", "children"],
-            },
-        ),
-        (
-            "Date information",
-            {
-                "fields": ["construction_date", "not_before", "not_after"],
-            },
-        ),
-        (
-            "Comments",
-            {
-                "fields": ["comment", "notes"],
-            }
-        ),
-        (
-            "URIs / IDs",
-            {
-                "fields": ["bebr_id", "fmis_id", "wikidata"],
-            },
-        ),
-        (
-            "Editing information",
-            {
-                "fields": ["created_by", "modified_by", "updated"],
-            },
-
-        ),
+        (None,
+         {"fields": ["id", "name", "place_type", "certainty_type",
+                     "type_indication", "municipality", "county",
+                     "country", "certainty", "exclude", "geometry"]}),
+        ("Place relations",
+         {"fields": ["parent", "parish", "children"]}),
+        ("Date information",
+         {"fields": ["construction_date", "not_before", "not_after"]}),
+        ("Comments",
+         {"fields": ["comment", "notes"]}),
+        ("URIs / IDs",
+         {"fields": ["bebr_id", "fmis_id", "wikidata"]}),
+        ("Editing information",
+         {"fields": ["created_by", "modified_by", "updated"]}),
+        ("Cult Manifestions in this place",
+         {"fields": ["related_cults_overview"]}),
     ]
     inlines = [
         PlaceNameInline,
-        CultInline,
         RelationOtherPlaceInline2,
         RelationQuoteInline
     ]
     ordering = ["name"]
 
+    @admin.display(description="Cult relations")
+    def related_cults_overview(self, obj):
+        if not obj or not obj.pk:
+            return "-"
+        direct_count = Cult.objects.filter(place=obj).only("id").count()
+
+        cult_url = (
+            reverse("admin:explore_cult_changelist")
+            + "?" + urlencode({"place__id__exact": obj.pk})
+        )
+
+        return format_html(
+            'Total: <b>{}</b> — <a href="{}">open list of cult manifestions in this place</a>',
+            direct_count, cult_url
+        )
+
+    def get_inline_instances(self, request, obj=None):
+        instances = super().get_inline_instances(request, obj)
+        if not obj:
+            return instances
+        direct_count = Cult.objects.filter(place=obj).only("id").count()
+        if direct_count <= RELATION_INLINE_THRESHOLD:
+            instances.insert(1, CultInline(self.model, self.admin_site))
+        return instances
+
     @admin.display(description="Children")
     def children(self, obj):
-        return obj.place_children.all()
+        if not obj or not obj.pk:
+            return "—"
+
+        qs = obj.place_children.all().select_related("place_type").only(
+            "id", "name", "municipality", "place_type__name"
+        )
+        if not qs.exists():
+            return "—"
+
+        items = []
+        for child in qs:
+            url = reverse("admin:explore_place_change", args=[child.pk])
+            label_parts = [
+                child.name,
+                child.municipality or None,
+                getattr(child.place_type, "name", None),
+            ]
+            label = " | ".join([p for p in label_parts if p])
+            items.append((url, label))
+
+        return format_html(
+            "<ul style='margin:0; padding-left:1.2em'>{}</ul>",
+            format_html_join("", "<li><a href=\"{}\">{}</a></li>", items),
+        )
 
 
 @admin.register(Cult)
@@ -340,44 +373,25 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
     model = Cult
     list_display = ["id", "cult_type", "place", "time_period", "updated"]
     search_fields = ["id", "cult_type__name", "place__name"]
-    autocomplete_fields = ["place", "parent", "associated", "cult_type", "quote"]
+    autocomplete_fields = ["place", "parent", "associated", "cult_type",
+                           "quote"]
     raw_id_fields = ["relation_cult_agent", "quote", "relation_other_place"]
     readonly_fields = ["created_by", "modified_by", "updated", "children"]
     fieldsets = [
-        (
-            None,
-            {
-                "fields": ["cult_uncertainty", "cult_type", "type_uncertainty",
-                           "extant", "colour", "place", "place_uncertainty", "placement", "placement_uncertainty",
-                           "in_parish", "feast_day"],
-            }
-        ),
-        (
-            "Date information",
-            {
-                "fields": ["not_before", "not_after", "production_date",
-                           "date_note", "time_period", "minyear", "maxyear"],
-            },
-        ),
-        (
-            "Comments",
-            {
-                "fields": ["comment", "notes"],
-            }
-        ),
-        (
-            "Relations",
-            {
-                "fields": ["parent", "associated", "children", "quote"],
-            },
-        ),
-        (
-            "Editing information",
-            {
-                "fields": ["created_by", "modified_by", "updated"],
-            },
-
-        ),
+        (None,
+         {"fields": ["cult_uncertainty", "cult_type", "type_uncertainty",
+                     "extant", "colour", "place", "place_uncertainty",
+                     "placement", "placement_uncertainty",
+                     "in_parish", "feast_day"]}),
+        ("Date information",
+         {"fields": ["not_before", "not_after", "production_date",
+                     "date_note", "time_period", "minyear", "maxyear"]}),
+        ("Comments",
+         {"fields": ["comment", "notes"]}),
+        ("Relations",
+         {"fields": ["parent", "associated", "children", "quote"]}),
+        ("Editing information",
+         {"fields": ["created_by", "modified_by", "updated"]}),
     ]
     inlines = [
         RelationOtherPlaceInline,
@@ -391,7 +405,6 @@ class CultAdmin(EntityAdminMixin, ModelAdmin):
 
     def children(self, obj):
         children = obj.cult_children.all()
-        print(children)
         children_list = [child.__str__() for child in children]
         return "; ".join(children_list)
 
@@ -404,88 +417,46 @@ class OrganizationAdmin(EntityAdminMixin, ModelAdmin):
     autocomplete_fields = ["parent"]
     readonly_fields = ["id", "created_by", "modified_by", "updated"]
     fieldsets = [
-        (
-            None,
-            {
-                "fields": ["id", "name", "organization_type", "parent"],
-            }
-        ),
-        (
-            "Date information",
-            {
-                "fields": ["not_before", "not_after"],
-            },
-        ),
-        (
-            "Comments",
-            {
-                "fields": ["comment", "notes"],
-            }
-        ),
-        (
-            "URIs",
-            {
-                "fields": ["wikidata"],
-            },
-        ),
-        (
-            "Editing information",
-            {
-                "fields": ["created_by", "modified_by", "updated"],
-            },
-
-        ),
+        (None,
+         {"fields": ["id", "name", "organization_type", "parent"]}),
+        ("Date information",
+         {"fields": ["not_before", "not_after"]}),
+        ("Comments",
+         {"fields": ["comment", "notes"]}),
+        ("URIs",
+         {"fields": ["wikidata"]}),
+        ("Editing information",
+         {"fields": ["created_by", "modified_by", "updated"]}),
     ]
     inlines = [
         OrganizationNameInline
     ]
     ordering = ["name"]
 
+
 @admin.register(Parish)
 class ParishAdmin(EntityAdminMixin, ModelAdmin):
     model = Parish
-    list_display = ["id", "name", "organization", "medival_organization", "updated"]
+    list_display = ["id", "name", "organization", "medival_organization",
+                    "updated"]
     search_fields = ["id", "name", "parishname__name"]
-    autocomplete_fields = ["parent", "origin", "organization", "medival_organization"]
+    autocomplete_fields = ["parent", "origin", "organization",
+                           "medival_organization"]
     readonly_fields = ["id", "created_by", "modified_by", "updated"]
     fieldsets = [
-        (
-            None,
-            {
-                "fields": ["id", "name", "snid_4"],
-            }
-        ),
-        (
-            "Relations",
-            {
-                "fields": ["parent", "origin", "organization", "medival_organization"],
-            },
-        ),
-        (
-            "Date information",
-            {
-                "fields": ["not_before", "not_after", "date_note"],
-            },
-        ),
-        (
-            "Comments",
-            {
-                "fields": ["comment", "notes"],
-            }
-        ),
-        (
-            "URIs",
-            {
-                "fields": ["wikidata"],
-            },
-        ),
-        (
-            "Editing information",
-            {
-                "fields": ["created_by", "modified_by", "updated"],
-            },
-
-        ),
+        (None,
+         {"fields": ["id", "name", "snid_4"]}),
+        ("Relations",
+         {"fields": ["parent", "origin", "organization",
+                     "medival_organization"]}),
+        ("Date information",
+         {"fields": ["not_before", "not_after", "date_note"]}),
+        ("Comments",
+         {"fields": ["comment", "notes"]}),
+        ("URIs",
+         {"fields": ["wikidata"]}),
+        ("Editing information",
+         {"fields": ["created_by", "modified_by", "updated"]}),
     ]
     inlines = [
         ParishNameInline,
@@ -497,43 +468,24 @@ class ParishAdmin(EntityAdminMixin, ModelAdmin):
 @admin.register(Source)
 class SourceAdmin(EntityAdminMixin, ModelAdmin):
     model = Source
-    list_display = ["id", "name", "author", "pub_year", "source_type", "specific_type", "not_before", "updated"]
-    search_fields = ["id", "name", "title", "author", "archive", "archive_name", "specific_type", "not_before"]
+    list_display = ["id", "name", "author", "pub_year", "source_type",
+                    "specific_type", "not_before", "updated"]
+    search_fields = ["id", "name", "title", "author", "archive",
+                     "archive_name", "specific_type", "not_before"]
     readonly_fields = ["id", "created_by", "modified_by", "updated"]
     fieldsets = [
-        (
-            None,
-            {
-                "fields": ["id", "name", "title", "source_type",
-                           "specific_type", "archive", "archive_name",
-                           "author", "publisher", "pub_place", "pub_year", "pages", "insource"],
-            }
-        ),
-        (
-            "Date information",
-            {
-                "fields": ["not_before", "not_after", "date_note"],
-            },
-        ),
-        (
-            "Comments",
-            {
-                "fields": ["comment", "notes"],
-            }
-        ),
-        (
-            "URIs",
-            {
-                "fields": ["uri", "libris_uri"],
-            },
-        ),
-        (
-            "Editing information",
-            {
-                "fields": ["created_by", "modified_by", "updated"],
-            },
-
-        ),
+        (None,
+         {"fields": ["id", "name", "title", "source_type", "specific_type",
+                     "archive", "archive_name", "author", "publisher",
+                     "pub_place", "pub_year", "pages", "insource"]}),
+        ("Date information",
+         {"fields": ["not_before", "not_after", "date_note"]}),
+        ("Comments",
+         {"fields": ["comment", "notes"]}),
+        ("URIs",
+         {"fields": ["uri", "libris_uri"]}),
+        ("Editing information",
+         {"fields": ["created_by", "modified_by", "updated"]}),
     ]
     inlines = [
         QuoteInline
@@ -549,44 +501,19 @@ class QuoteAdmin(EntityAdminMixin, ModelAdmin):
     autocomplete_fields = ["source"]
     readonly_fields = ["id", "created_by", "modified_by", "updated"]
     fieldsets = [
-        (
-            None,
-            {
-                "fields": ["id", "source", "page", "language"],
-            }
-        ),
-        (
-            "Date information",
-            {
-                "fields": ["not_before", "not_after", "date_note"],
-            },
-        ),
-        (
-            "Quote",
-            {
-                "fields": ["quote_transcription", "transcribed_by",
-                           "translation", "translated_by"],
-            }
-        ),
-        (
-            "Comments",
-            {
-                "fields": ["comment", "notes"],
-            }
-        ),
-        (
-            "URIs",
-            {
-                "fields": ["uri"],
-            },
-        ),
-        (
-            "Editing information",
-            {
-                "fields": ["created_by", "modified_by", "updated"],
-            },
-
-        ),
+        (None,
+         {"fields": ["id", "source", "page", "language"]}),
+        ("Date information",
+         {"fields": ["not_before", "not_after", "date_note"]}),
+        ("Quote",
+         {"fields": ["quote_transcription", "transcribed_by",
+                     "translation", "translated_by"]}),
+        ("Comments",
+         {"fields": ["comment", "notes"]}),
+        ("URIs",
+         {"fields": ["uri"]}),
+        ("Editing information",
+         {"fields": ["created_by", "modified_by", "updated"]}),
     ]
     inlines = [
         RelationQuotePlaceInline,
@@ -605,10 +532,12 @@ class FeastDayAdmin(EntityAdminMixin, ModelAdmin):
 @admin.register(Iconographic)
 class IconographicAdmin(ImageMixin, ModelAdmin):
     model = Iconographic
-    list_display = ["id", "thumbnail_preview", "card", "church", "motif2", "saints"]
+    list_display = ["id", "thumbnail_preview", "card", "church", "motif2",
+                    "saints"]
     search_fields = ["id", "church", "motif2", "saints"]
     autocomplete_fields = ["parish", "place"]
-    readonly_fields = ["image_preview", "id", "card", "card_type", "filename", "front_back",
+    readonly_fields = ["image_preview", "id", "card", "card_type", "filename",
+                       "front_back",
                        "volume", "uri", "church", "subject1", "subject2",
                        "subject3", "motif1", "motif2", "bebr_id", "site_no",
                        "raa_no", "description", "filename2", "note", "ocr",
@@ -620,9 +549,11 @@ class IconographicAdmin(ImageMixin, ModelAdmin):
 @admin.register(RelationCultAgent)
 class RelationCultAgentAdmin(ModelAdmin):
     model = RelationCultAgent
-    list_display = ["id", "cult", "agent", "agent_main", "agent_alternative", "updated"]
+    list_display = ["id", "cult", "agent", "agent_main", "agent_alternative",
+                    "updated"]
     autocomplete_fields = ["cult", "agent"]
-    search_fields = ["cult__place__name", "cult__cult_type__name", "agent__name"]
+    search_fields = ["cult__place__name", "cult__cult_type__name",
+                     "agent__name"]
 
 
 @admin.register(RelationOffice)
@@ -633,25 +564,12 @@ class RelationOfficeAdmin(EntityAdminMixin, ModelAdmin):
     search_fields = ["agent__name", "organization__name", "role__name"]
     readonly_fields = ["id", "created_by", "modified_by", "updated"]
     fieldsets = [
-        (
-            None,
-            {
-                "fields": ["id", "agent", "role", "organization"],
-            }
-        ),
-        (
-            "Date information",
-            {
-                "fields": ["not_before", "not_after", "date_note"],
-            },
-        ),
-        (
-            "Editing information",
-            {
-                "fields": ["created_by", "modified_by", "updated"],
-            },
-
-        ),
+        (None,
+         {"fields": ["id", "agent", "role", "organization"]}),
+        ("Date information",
+         {"fields": ["not_before", "not_after", "date_note"]}),
+        ("Editing information",
+         {"fields": ["created_by", "modified_by", "updated"]}),
     ]
 
 
@@ -660,7 +578,8 @@ class RelationDigitalResourceAdmin(EntityAdminMixin, ModelAdmin):
     model = RelationDigitalResource
     list_display = ["id", "cult", "resource_uri", "updated"]
     autocomplete_fields = ["cult"]
-    search_fields = ["cult__place__name", "cult__cult_type__name", "resource_uri"]
+    search_fields = ["cult__place__name", "cult__cult_type__name",
+                     "resource_uri"]
 
 
 @admin.register(RelationMBResource)
@@ -668,15 +587,18 @@ class RelationMBResourceAdmin(EntityAdminMixin, ModelAdmin):
     model = RelationMBResource
     list_display = ["id", "cult", "resource_uri", "updated"]
     autocomplete_fields = ["cult"]
-    search_fields = ["cult__place__name", "cult__cult_type__name", "resource_uri"]
+    search_fields = ["cult__place__name", "cult__cult_type__name",
+                     "resource_uri"]
 
 
 @admin.register(RelationIconographic)
 class RelationIconographicAdmin(EntityAdminMixin, ImageMixin, ModelAdmin):
     model = RelationIconographic
-    list_display = ["id", "cult", "thumbnail_preview", "iconographic", "updated"]
+    list_display = ["id", "cult", "thumbnail_preview", "iconographic",
+                    "updated"]
     autocomplete_fields = ["cult", "iconographic"]
-    search_fields = ["cult__place__name", "cult__cult_type__name", "iconographic__church", "iconographic__motif2"]
+    search_fields = ["cult__place__name", "cult__cult_type__name",
+                     "iconographic__church", "iconographic__motif2"]
     readonly_fields = ["thumbnail_preview"]
 
 
@@ -685,7 +607,8 @@ class RelationOtherPlaceAdmin(ModelAdmin):
     model = RelationOtherPlace
     list_display = ["id", "place", "role", "cult", "updated"]
     autocomplete_fields = ["place", "cult", "role"]
-    search_fields = ["place__name", "cult__place__name", "cult__cult_type__name", "role__name"]
+    search_fields = ["place__name", "cult__place__name",
+                     "cult__cult_type__name", "role__name"]
 
 
 @admin.register(RelationOtherAgent)
@@ -693,7 +616,8 @@ class RelationOtherAgentAdmin(ModelAdmin):
     model = RelationOtherAgent
     list_display = ["id", "cult", "role", "agent", "updated"]
     autocomplete_fields = ["agent", "cult", "role"]
-    search_fields = ["agent__name", "cult__place__name", "cult__cult_type__name", "role__name"]
+    search_fields = ["agent__name", "cult__place__name",
+                     "cult__cult_type__name", "role__name"]
 
 
 @admin.register(AgentType)

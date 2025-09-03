@@ -275,7 +275,7 @@ class AgentAdmin(EntityAdminMixin, ModelAdmin):
             return instances
         count = RelationCultAgent.objects.filter(agent=obj).only("id").count()
         if count <= RELATION_INLINE_THRESHOLD:
-            instances.append(RelationCultAgentInline(self.model,
+            instances.append(RelationAgentCultInline(self.model,
                                                      self.admin_site))
         return instances
 

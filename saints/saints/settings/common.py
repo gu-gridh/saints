@@ -149,7 +149,7 @@ REST_FRAMEWORK = {
 LEAFLET_CONFIG = {
     'DEFAULT_CENTER': (6.0, 45.0),
     'DEFAULT_ZOOM': 16,
-    'TILES': 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    'TILES': 'http://tile.openstreetmap.org/{z}/{x}/{y}.png'
 }
 
 # needs to be replaced by non-deprecated editor in the future

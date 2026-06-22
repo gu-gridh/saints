@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from wagtail.rich_text import expand_db_html
 
 
 class ContentPageSerializer(serializers.Serializer):
@@ -9,7 +10,20 @@ class ContentPageSerializer(serializers.Serializer):
     body = serializers.SerializerMethodField()
 
     def get_body(self, page):
-        return page.body.get_prep_value()
+        blocks = []
+
+        for block in page.body:
+            value = block.value
+
+            if block.block_type == "text":
+                value = expand_db_html(str(value))
+
+            blocks.append({
+                "type": block.block_type,
+                "value": value,
+            })
+
+        return blocks
 
 
 class FooterSettingsSerializer(serializers.Serializer):

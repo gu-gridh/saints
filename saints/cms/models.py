@@ -6,7 +6,7 @@ from wagtail.admin.panels import FieldPanel
 from wagtail.api import APIField
 
 from wagtail import blocks
-from wagtail.images.blocks import ImageChooserBlock
+from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 
 
 class HeadlessPage(Page):
@@ -18,20 +18,46 @@ class HeadlessPage(Page):
 
 class ContentPage(HeadlessPage):
 
+    show_banner = models.BooleanField(default=False)
+
     body = StreamField(
         [
             ("heading", blocks.CharBlock()),
-            ("text", blocks.RichTextBlock()),
-            ("image", ImageChooserBlock()),
+            ("text", blocks.RichTextBlock(features=["h2", "h3", "bold",
+                                                    "italic", "link", "hr",
+                                                    "ol", "ul", "blockquote",
+                                                    "document-link",
+                                                    "image"])),
         ],
         use_json_field=True,
         blank=True,
     )
 
     content_panels = Page.content_panels + [
+        FieldPanel("show_banner"),
         FieldPanel("body"),
     ]
 
     api_fields = [
+        APIField("show_banner"),
         APIField("body"),
     ]
+
+
+@register_setting
+class FooterSettings(BaseSiteSetting):
+    partner_links = StreamField(
+        [
+            (
+                "link",
+                blocks.StructBlock(
+                    [
+                        ("label", blocks.CharBlock()),
+                        ("url", blocks.URLBlock()),
+                    ]
+                ),
+            ),
+        ],
+        use_json_field=True,
+        blank=True,
+    )

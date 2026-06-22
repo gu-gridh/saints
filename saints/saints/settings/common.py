@@ -46,6 +46,22 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    'wagtail.contrib.forms',
+    'wagtail.contrib.redirects',
+    'wagtail.embeds',
+    'wagtail.sites',
+    'wagtail.users',
+    'wagtail.snippets',
+    'wagtail.documents',
+    'wagtail.images',
+    'wagtail.search',
+    'wagtail.admin',
+    'wagtail.api.v2',
+    'wagtail',
+
+    'modelcluster',
+    'taggit',
+    'cms',
 ]
 
 MIDDLEWARE = [
@@ -57,6 +73,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'wagtail.contrib.redirects.middleware.RedirectMiddleware'
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -167,3 +184,7 @@ CKEDITOR_CONFIGS = {
         'colorButton_enableAutomatic': False,
     }
 }
+
+# wagtail settings
+WAGTAIL_SITE_NAME = 'Mapping Saints'
+WAGTAILDOCS_EXTENSIONS = ['csv', 'pdf', 'jpeg', 'png']

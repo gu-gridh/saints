@@ -17,6 +17,9 @@ from .common import INSTALLED_APPS
 DEBUG = True
 
 ALLOWED_HOSTS = []
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
 
 INSTALLED_APPS += ["debug_toolbar"]
 

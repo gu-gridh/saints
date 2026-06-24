@@ -14,3 +14,4 @@ migrations
 # Deployment 
 *.sh
 /static*
+media

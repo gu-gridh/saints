@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from django.conf import settings
+from django.conf.urls.static import static
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail.documents import urls as wagtaildocs_urls
 from wagtail.api.v2.router import WagtailAPIRouter
@@ -37,5 +39,9 @@ urlpatterns = [
     path("documents/", include(wagtaildocs_urls)),
     path("api/cms/", wagtail_api_router.urls),
     path("api/cms/", include("cms.urls")),
-#    path("oai/", include("oai_pmh.urls")),
+    # path("oai/", include("oai_pmh.urls")),
 ] + debug_toolbar_urls()
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)

@@ -5,6 +5,7 @@ class ContentPageSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     title = serializers.CharField()
     show_banner = serializers.BooleanField()
+    content_width = serializers.CharField()
     slug = serializers.CharField()
     body = serializers.SerializerMethodField()
 

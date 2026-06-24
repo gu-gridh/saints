@@ -28,7 +28,19 @@ class HeadlessPage(Page):
 
 
 class ContentPage(HeadlessPage):
+    FULL = "full"
+    HALF = "half"
 
+    CONTENT_WIDTH_CHOICES = [
+        (FULL, "Full width"),
+        (HALF, "Half width"),
+    ]
+
+    content_width = models.CharField(
+        max_length=10,
+        choices=CONTENT_WIDTH_CHOICES,
+        default=FULL,
+    )
     show_banner = models.BooleanField(default=False)
 
     body = StreamField(
@@ -42,11 +54,13 @@ class ContentPage(HeadlessPage):
 
     content_panels = Page.content_panels + [
         FieldPanel("show_banner"),
+        FieldPanel("content_width"),
         FieldPanel("body"),
     ]
 
     api_fields = [
         APIField("show_banner"),
+        APIField("content_width"),
         APIField("body"),
     ]
 

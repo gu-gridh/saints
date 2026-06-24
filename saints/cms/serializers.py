@@ -15,9 +15,13 @@ class ContentPageSerializer(serializers.Serializer):
             value = block.value
 
             if block.block_type == "text":
-                value = str(value)
+                value = {
+                    "text": str(value["text"]),
+                    "two_columns": value.get("two_columns", False),
+                }
 
             blocks.append({
+                "id": block.id,
                 "type": block.block_type,
                 "value": value,
             })

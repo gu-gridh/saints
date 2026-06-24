@@ -9,6 +9,17 @@ from wagtail import blocks
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 
 
+class TextBlockColumns(blocks.StructBlock):
+    text = blocks.RichTextBlock(features=["h3", "bold", "italic", "link", "hr",
+                                          "ol", "ul", "blockquote", 
+                                          "document-link", "image"])
+    two_columns = blocks.BooleanBlock(required=False, default=False)
+
+    class Meta:
+        icon = "doc-full"
+        label = "Text"
+
+
 class HeadlessPage(Page):
     preview_modes = []
 
@@ -23,11 +34,7 @@ class ContentPage(HeadlessPage):
     body = StreamField(
         [
             ("heading", blocks.CharBlock()),
-            ("text", blocks.RichTextBlock(features=["h2", "h3", "bold",
-                                                    "italic", "link", "hr",
-                                                    "ol", "ul", "blockquote",
-                                                    "document-link",
-                                                    "image"])),
+            ("text", TextBlockColumns()),
         ],
         use_json_field=True,
         blank=True,

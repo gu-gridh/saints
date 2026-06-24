@@ -25,8 +25,6 @@ from wagtail.api.v2.views import PagesAPIViewSet
 from wagtail.images.api.v2.views import ImagesAPIViewSet
 from wagtail.documents.api.v2.views import DocumentsAPIViewSet
 
-from debug_toolbar.toolbar import debug_toolbar_urls
-
 wagtail_api_router = WagtailAPIRouter("wagtailapi")
 wagtail_api_router.register_endpoint("pages", PagesAPIViewSet)
 wagtail_api_router.register_endpoint("images", ImagesAPIViewSet)
@@ -45,6 +43,6 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:
+if getattr(settings, "ENABLE_DEBUG_TOOLBAR", False):
+    from debug_toolbar.toolbar import debug_toolbar_urls
     urlpatterns += debug_toolbar_urls()
-

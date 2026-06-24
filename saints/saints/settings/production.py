@@ -14,6 +14,7 @@ from saints.settings.common import *
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
+ENABLE_DEBUG_TOOLBAR = False
 
 MEDIA_ROOT = os.getenv('MEDIA_STORE')
 MEDIA_URL = "/media/"

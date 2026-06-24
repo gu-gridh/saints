@@ -15,6 +15,7 @@ from .common import INSTALLED_APPS
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+ENABLE_DEBUG_TOOLBAR = True
 
 ALLOWED_HOSTS = []
 CORS_ALLOWED_ORIGINS = [

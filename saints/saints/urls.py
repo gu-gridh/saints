@@ -40,8 +40,9 @@ urlpatterns = [
     path("api/cms/", wagtail_api_router.urls),
     path("api/cms/", include("cms.urls")),
     # path("oai/", include("oai_pmh.urls")),
-] + debug_toolbar_urls()
+]
 
 if settings.DEBUG:
+    urlpatterns += debug_toolbar_urls()
     urlpatterns += static(settings.MEDIA_URL,
                           document_root=settings.MEDIA_ROOT)

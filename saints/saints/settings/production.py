@@ -16,8 +16,7 @@ from saints.settings.common import *
 DEBUG = False
 ENABLE_DEBUG_TOOLBAR = False
 
-MEDIA_ROOT = os.getenv('MEDIA_STORE')
-MEDIA_URL = "/media/"
+BASE_DIR = os.getenv('BASE_DIR')
 
 ALLOWED_HOSTS = ['saints.dh.gu.se']
 CORS_ALLOWED_ORIGINS = [
@@ -31,6 +30,21 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.0/howto/static-files/
+
+STATIC_URL = 'static/'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'static_build')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+)
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DATABASES = {
     'default': {

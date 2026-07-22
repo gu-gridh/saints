@@ -10,14 +10,22 @@ from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 
 
 class TextBlockColumns(blocks.StructBlock):
-    text = blocks.RichTextBlock(features=["h3", "bold", "italic", "link", "hr",
-                                          "ol", "ul", "blockquote", 
-                                          "document-link", "image"])
+    text = blocks.RichTextBlock(features=["h3", "bold", "italic", "link",
+                                          "arrow-link", "hr", "ol", "ul",
+                                          "blockquote", "document-link",
+                                          "image"])
     two_columns = blocks.BooleanBlock(required=False, default=False)
 
     class Meta:
         icon = "doc-full"
         label = "Text"
+
+
+class CultTypeTableBlock(blocks.StaticBlock):
+    class Meta:
+        label = "Cult type table"
+        icon = "table"
+        admin_text = "Displays the automatically generated cult type table."
 
 
 class HeadlessPage(Page):
@@ -47,6 +55,7 @@ class ContentPage(HeadlessPage):
         [
             ("heading", blocks.CharBlock()),
             ("text", TextBlockColumns()),
+            ("culttype_table", CultTypeTableBlock()),
         ],
         use_json_field=True,
         blank=True,

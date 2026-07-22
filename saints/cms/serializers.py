@@ -21,6 +21,9 @@ class ContentPageSerializer(serializers.Serializer):
                     "two_columns": value.get("two_columns", False),
                 }
 
+            if block.block_type == "culttype_table":
+                value = None
+
             blocks.append({
                 "id": block.id,
                 "type": block.block_type,

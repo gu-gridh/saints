@@ -3,7 +3,7 @@ from rest_framework.settings import api_settings
 from rest_framework_gis.filters import InBBoxFilter
 # from rest_framework_gis.pagination import GeoJsonPagination
 from django.contrib.gis.gdal.envelope import Envelope
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from . import models
 from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     AgentTypeSerializer, PlaceTypeSerializer, CultTypeSerializer, \
@@ -12,7 +12,8 @@ from .serializers import AgentSerializer, CultSerializer, PlaceSerializer, \
     CultMapSerializer, SaintsMapSerializer, PeopleMapSerializer, \
     CultMiniSerializer, QuoteSerializer, QuoteMiniSerializer, \
     PlaceChildrenSerializer, SourceMediumSerializer, \
-    OrganizationMiniSerializer, AdvancedCultMapSerializer
+    OrganizationMiniSerializer, AdvancedCultMapSerializer, \
+    CultTypeTreeSerializer
 
 
 class MediumResultsSetPagination(pagination.PageNumberPagination):
@@ -404,6 +405,36 @@ class CultTypesViewSet(OrderingMixin):
     search_fields = ['name', 'name_sv', 'name_fi']
 
 
+class CultTypeTreeViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = CultTypeTreeSerializer
+
+    def get_queryset(self):
+        subcategories = models.CultType.objects.filter(
+            level="Subcategory").order_by("name")
+
+        intermediates = (models.CultType.objects.filter(
+            level="Intermediate").order_by("name")
+            .prefetch_related(
+                Prefetch("culttype_set",
+                         queryset=subcategories,
+                )
+            )
+        )
+
+        return (models.CultType.objects.filter(
+            level="Type of Evidence",
+            parent__isnull=True,
+            )
+            .order_by("name")
+            .prefetch_related(
+                Prefetch(
+                    "culttype_set",
+                    queryset=intermediates,
+                )
+            )
+        )
+
+
 class AgentTypesViewSet(OrderingMixin):
     def get_queryset(self):
         """
@@ -445,8 +476,7 @@ class MapViewSet(viewsets.ReadOnlyModelViewSet):
                 extant = options.get('extant')
                 med_diocese = options.get('med_diocese')
                 if search is not None:
-                    queryset = queryset.prefetch_related("relation_cult_place").filter(Q(name__icontains=search)
-                                                         | Q(relation_cult_place__cult_type__name__icontains=search)
+                    queryset = queryset.prefetch_related("relation_cult_place").filter(Q(name__icontains=search) | Q(relation_cult_place__cult_type__name__icontains=search)
                                                          | Q(relation_cult_place__relation_cult_agent__name__icontains=search)
                                                          | Q(relation_cult_place__relationotheragent__agent__name__icontains=search)).distinct()
                 if uncertainty is not None:
@@ -575,15 +605,16 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
                 else:
                     queryset = queryset.prefetch_related("cult_type__parent__parent").filter(cult_type__parent__parent__in=types)
             else:
-                queryset = queryset.prefetch_related("cult_type", "cult_type__parent",
-                                                     "cult_type__parent__parent").filter(Q(cult_type__in=types)
-                                                                                         | Q(cult_type__parent__in=types)
-                                                                                         | Q(cult_type__parent__parent__in=types)).distinct()
+                queryset = queryset.prefetch_related(
+                    "cult_type", "cult_type__parent",
+                    "cult_type__parent__parent").filter(
+                        Q(cult_type__in=types) | Q(cult_type__parent__in=types)
+                        | Q(cult_type__parent__parent__in=types)).distinct()
 
         if agent_type is not None and agent_type != '':
             agent_types = agent_type.split(',')
             queryset = queryset.prefetch_related("relation_cult_agent__agent_type",
-                                                 "relationotheragent_set__agent__agent_type").filter(Q(relation_cult_agent__agent_type__in=agent_types)
+             "relationotheragent_set__agent__agent_type").filter(Q(relation_cult_agent__agent_type__in=agent_types)
                                                   | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
         if agent is not None and agent != '':
             agents = agent.split(',')
@@ -595,7 +626,8 @@ class AdvancedMapViewSet(viewsets.ReadOnlyModelViewSet):
             years = range.split(',')
             minyear = int(years[0])
             maxyear = int(years[1])
-            queryset = queryset.filter(minyear__lte=maxyear, maxyear__gte=minyear)
+            queryset = queryset.filter(minyear__lte=maxyear,
+                                       maxyear__gte=minyear)
 
         if bbox is not None:
             bbox = bbox.strip().split(',')

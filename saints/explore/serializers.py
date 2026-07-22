@@ -247,6 +247,36 @@ class CultTypeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class CultTypeLeafSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CultType
+        fields = ["id", "name"]
+
+
+class CultTypeIntermediateSerializer(serializers.ModelSerializer):
+    items = CultTypeLeafSerializer(
+        source="culttype_set",
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+        model = CultType
+        fields = ["id", "name", "items"]
+
+
+class CultTypeTreeSerializer(serializers.ModelSerializer):
+    groups = CultTypeIntermediateSerializer(
+        source="culttype_set",
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+        model = CultType
+        fields = ["id", "name", "groups"]
+
+
 class IconicMiniSerializer(serializers.ModelSerializer):
     additional = serializers.SerializerMethodField()
 

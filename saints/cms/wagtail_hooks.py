@@ -7,6 +7,7 @@ from wagtail.admin.rich_text.converters.html_to_contentstate import InlineStyleE
 def register_arrow_link_feature(features):
     feature_name = "arrow-link"
     type_ = "ARROW_LINK"
+    tag = 'span class="richtext-arrow-link"'
 
     control = {
         "type": type_,
@@ -31,10 +32,7 @@ def register_arrow_link_feature(features):
         },
         "to_database_format": {
             "style_map": {
-                type_: {
-                    "element": "span",
-                    "props": {"class": "richtext-arrow-link"},
-                },
+                type_: tag,
             },
         },
     })

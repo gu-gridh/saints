@@ -245,7 +245,7 @@ class PlacesViewSet(OrderingMixin):
             types = place_type.split(',')
             queryset = queryset.filter(Q(place_type__in=types) | Q(place_type__parent__in=types)).order_by('name')
         if med_diocese is not None and med_diocese != '':
-            queryset = queryset.filter(parish__medival_organization_id=med_diocese).order_by('name')
+            queryset = queryset.select_related("parish__medival_organization").filter(parish__medival_organization_id=med_diocese).order_by('name')
         return queryset
 
     def get_serializer_class(self):

@@ -1,28 +1,48 @@
-from rest_framework import serializers
-from rest_framework_gis.serializers import GeoFeatureModelSerializer
+import requests
 from django.contrib.auth.models import User
 from django.db.models import Q
-from .models import Agent, AgentType, AgentName, Place, PlaceName, PlaceType, \
-    Cult, CultType, Source, Parish, Quote, Organization, FeastDay, \
-    OrganizationType, RelationCultAgent, RelationOffice, \
-    RelationDigitalResource, Iconographic, RelationMBResource, \
-    RelationOtherAgent, RelationOtherPlace
-import requests
-from itertools import chain
+from rest_framework import serializers
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
+
+from .models import (
+    Agent,
+    AgentName,
+    AgentType,
+    Cult,
+    CultType,
+    FeastDay,
+    Iconographic,
+    Organization,
+    OrganizationName,
+    OrganizationType,
+    Parish,
+    Place,
+    PlaceName,
+    PlaceType,
+    Quote,
+    RelationCultAgent,
+    RelationDigitalResource,
+    RelationMBResource,
+    RelationOffice,
+    RelationOtherAgent,
+    RelationOtherPlace,
+    Source,
+)
+from .utils import build_iconographic_lookup
 
 
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name']
+        fields = ('first_name', 'last_name')
 
 
 class AgentTypeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AgentType
-        exclude = ['updated', 'level']
+        exclude = ('updated', 'level')
 
 
 class AgentNameSerializer(serializers.ModelSerializer):
@@ -32,6 +52,20 @@ class AgentNameSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class AgentNameDisplaySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AgentName
+        fields = ('name', 'language', 'not_before')
+
+
+class OrganizationNameDisplaySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = OrganizationName
+        fields = ('name', 'language', 'not_before')
+
+
 class PlaceNameSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -39,37 +73,35 @@ class PlaceNameSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class PlaceNameDisplaySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PlaceName
+        fields = ('name', 'language', 'not_before')
+
+
 class OrganizationMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ['id', 'name']
-
-
-class OrganizationMiniSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Organization
-        fields = ['id', 'name']
+        fields = ('id', 'name')
 
 
 class OrganizationTypeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrganizationType
-        exclude = ['updated']
+        exclude = ['updated']  # noqa: RUF012
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
     organization_type = OrganizationTypeSerializer(read_only=True)
-    organization_names = serializers.SerializerMethodField()
-
-    def get_organization_names(self, obj):
-        return obj.organizationname_set.all().values('name', 'language', 'not_before')
+    organization_names = OrganizationNameDisplaySerializer(
+        source='organizationname_set', many=True, read_only=True)
 
     class Meta:
         model = Organization
-        exclude = ['created', 'modified', 'updated', 'notes']
+        exclude = ('created', 'modified', 'updated', 'notes')
 
 
 class RelationOfficeSerializer(serializers.ModelSerializer):
@@ -78,14 +110,15 @@ class RelationOfficeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RelationOffice
-        fields = ['organization', 'role', 'not_before', 'not_after', 'date_note']
+        fields = ('organization', 'role', 'not_before', 'not_after',
+                  'date_note')
 
 
 class AgentMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Agent
-        fields = ['id', 'name']
+        fields = ('id', 'name')
 
 
 class AgentRelationSerializer(serializers.ModelSerializer):
@@ -94,14 +127,15 @@ class AgentRelationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RelationCultAgent
-        fields = ['id', 'name', 'agent_uncertainty', 'agent_main', 'agent_alternative']
+        fields = ('id', 'name', 'agent_uncertainty', 'agent_main',
+                  'agent_alternative')
 
 
 class DigitalResourceRelationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RelationDigitalResource
-        fields = ['resource_uri', 'resource_uncertainty']
+        fields = ('resource_uri', 'resource_uncertainty')
 
 
 class MBResourceRelationSerializer(serializers.ModelSerializer):
@@ -121,7 +155,8 @@ class MBResourceRelationSerializer(serializers.ModelSerializer):
         json_obj = response.json()
         for item in json_obj['@graph']:
             if item['@type'] == 'Image':
-                res['images'].append({'filename': item['lowresSource'], 'thumbnail': item['thumbnailSource']})
+                res['images'].append({'filename': item['lowresSource'],
+                                      'thumbnail': item['thumbnailSource']})
             elif item['@type'] == 'ItemName':
                 if 'name' in item:
                     res['name'] = item['name'].title()
@@ -136,56 +171,56 @@ class MBResourceRelationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RelationMBResource
-        fields = ['resource_uri', 'samsoek']
+        fields = ('resource_uri', 'samsoek')
 
 
 class PlaceTypeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlaceType
-        exclude = ['updated', 'aat']
+        exclude = ('updated', 'aat')
 
 
 class PlaceTypeMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlaceType
-        fields = ['id', 'name', 'parent']
+        fields = ('id', 'name', 'parent')
 
 
 class DioceseMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ['id', 'name']
+        fields = ('id', 'name')
 
 
 class QuoteMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quote
-        exclude = ['created', 'modified', 'notes', 'updated']
+        exclude = ('created', 'modified', 'notes', 'updated')
 
 
 class SourceMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Source
-        fields = ['id', 'name']
+        fields = ('id', 'name')
 
 
 class SourceMediumSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Source
-        exclude = ['created', 'modified', 'notes', 'updated']
+        exclude = ('created', 'modified', 'notes', 'updated')
 
 
 class FeastDaySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FeastDay
-        fields = ['day', 'type']
+        fields = ('day', 'type')
 
 
 class ParishMiniSerializer(serializers.ModelSerializer):
@@ -193,7 +228,7 @@ class ParishMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Parish
-        fields = ['id', 'name', 'medival_organization']
+        fields = ('id', 'name', 'medival_organization')
 
 
 class PlaceMiniSerializer(serializers.ModelSerializer):
@@ -202,7 +237,8 @@ class PlaceMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'municipality', 'parish', 'place_type', 'geometry']
+        fields = ('id', 'name', 'municipality', 'parish', 'place_type',
+                  'geometry')
 
 
 class PlaceMapSerializer(GeoFeatureModelSerializer):
@@ -228,7 +264,7 @@ class PlaceMapSerializer(GeoFeatureModelSerializer):
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'place_type', 'geometry']
+        fields = ('id', 'name', 'place_type', 'geometry')
         geo_field = 'geometry'
 
 
@@ -236,7 +272,7 @@ class CultTypeMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CultType
-        exclude = ['updated', 'aat', 'wikidata']
+        exclude = ('updated', 'aat', 'wikidata')
 
 
 class CultTypeSerializer(serializers.ModelSerializer):
@@ -250,7 +286,7 @@ class CultTypeSerializer(serializers.ModelSerializer):
 class CultTypeLeafSerializer(serializers.ModelSerializer):
     class Meta:
         model = CultType
-        fields = ["id", "name"]
+        fields = ("id", "name")
 
 
 class CultTypeIntermediateSerializer(serializers.ModelSerializer):
@@ -262,7 +298,7 @@ class CultTypeIntermediateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CultType
-        fields = ["id", "name", "items"]
+        fields = ("id", "name", "items")
 
 
 class CultTypeTreeSerializer(serializers.ModelSerializer):
@@ -274,19 +310,39 @@ class CultTypeTreeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CultType
-        fields = ["id", "name", "groups"]
+        fields = ("id", "name", "groups")
 
 
 class IconicMiniSerializer(serializers.ModelSerializer):
     additional = serializers.SerializerMethodField()
 
     def get_additional(self, obj):
-        additional = Iconographic.objects.all().filter(card=obj.card, volume=obj.volume).exclude(id=obj.id).values('id', 'motif2', 'filename', 'uri')
-        return additional
+        additional_map = self.context.get('additional_map')
+
+        if additional_map is not None:
+            return [
+                item
+                for item in additional_map.get(
+                    (obj.card, obj.volume), []
+                )
+                if item['id'] != obj.id
+            ]
+
+        # fallback: without precomputed lookup
+        return list(
+            Iconographic.objects.filter(
+                card=obj.card,
+                volume=obj.volume
+            ).exclude(
+                id=obj.id
+            ).values(
+                'id', 'motif2', 'filename', 'uri'
+            )
+        )
 
     class Meta:
         model = Iconographic
-        fields = ['id', 'motif2', 'filename', 'uri', 'additional']
+        fields = ('id', 'motif2', 'filename', 'uri', 'additional')
 
 
 class CultRelationSerializer(serializers.ModelSerializer):
@@ -295,7 +351,7 @@ class CultRelationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Cult
-        fields = ['id', 'place', 'cult_type', 'minyear', 'maxyear']
+        fields = ('id', 'place', 'cult_type', 'minyear', 'maxyear')
 
 
 class RelationOtherAgentSerializer(serializers.ModelSerializer):
@@ -305,7 +361,7 @@ class RelationOtherAgentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RelationOtherAgent
-        fields = ['id', 'name', 'agent_uncertainty', 'role']
+        fields = ('id', 'name', 'agent_uncertainty', 'role')
 
 
 class RelationOtherPlaceSerializer(serializers.ModelSerializer):
@@ -314,7 +370,7 @@ class RelationOtherPlaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RelationOtherPlace
-        fields = ['place', 'place_uncertainty', 'role']
+        fields = ('place', 'place_uncertainty', 'role')
 
 
 class CultMiniSerializer(serializers.ModelSerializer):
@@ -324,21 +380,38 @@ class CultMiniSerializer(serializers.ModelSerializer):
 
     def get_relation_cult_agent(self, obj):
         relations = obj.relationcultagent_set.all()
-        if relations:
-            if len(relations) > 1:
-                return relations[0].agent.name + " and others"
-            else:
-                return relations[0].agent.name
+        if not relations:
+            return None
+
+        name = relations[0].agent.name
+        if len(relations) > 1:
+            return f"{name} and others"
+
+        return name
 
     class Meta:
         model = Cult
-        fields = ['id', 'place', 'cult_type', 'relation_cult_agent', 'minyear', 'maxyear']
+        fields = ('id', 'place', 'cult_type', 'relation_cult_agent', 'minyear',
+                  'maxyear')
 
 
 class CultMiniPlaceSerializer(CultMiniSerializer):
     class Meta:
         model = Cult
-        fields = ['id', 'place', 'cult_type', 'relation_cult_agent', 'minyear', 'maxyear', 'place_uncertainty']
+        fields = ('id', 'place', 'cult_type', 'relation_cult_agent', 'minyear',
+                  'maxyear', 'place_uncertainty')
+
+
+class CultListSerializer(serializers.ListSerializer):
+
+    def to_representation(self, data):
+        cults = list(data)
+
+        self.child.context['additional_map'] = (
+            build_iconographic_lookup(cults)
+        )
+
+        return super().to_representation(cults)
 
 
 class CultSerializer(serializers.ModelSerializer):
@@ -349,21 +422,24 @@ class CultSerializer(serializers.ModelSerializer):
     quote = QuoteMiniSerializer(read_only=True, many=True)
     parent = CultMiniSerializer(read_only=True)
     associated = CultMiniSerializer(read_only=True, many=True)
-    dependent = CultMiniSerializer(read_only=True, many=True, source='cult_children')
-    relation_cult_agent = serializers.SerializerMethodField() # AgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
-    relation_other_agent = RelationOtherAgentSerializer(read_only=True, many=True, source='relationotheragent_set')
-    relation_other_place = RelationOtherPlaceSerializer(read_only=True, many=True, source='relationotherplace_set')
-    relation_digital_resource = DigitalResourceRelationSerializer(read_only=True, many=True, source='relationdigitalresource_set')
-    relation_mb_resource = MBResourceRelationSerializer(read_only=True, many=True, source='relationmbresource_set')
+    dependent = CultMiniSerializer(read_only=True, many=True,
+                                   source='cult_children')
+    relation_cult_agent = AgentRelationSerializer(
+        read_only=True, many=True, source='relationcultagent_set')
+    relation_other_agent = RelationOtherAgentSerializer(
+        read_only=True, many=True, source='relationotheragent_set')
+    relation_other_place = RelationOtherPlaceSerializer(
+        read_only=True, many=True, source='relationotherplace_set')
+    relation_digital_resource = DigitalResourceRelationSerializer(
+        read_only=True, many=True, source='relationdigitalresource_set')
+    relation_mb_resource = MBResourceRelationSerializer(
+        read_only=True, many=True, source='relationmbresource_set')
     relation_iconographic = IconicMiniSerializer(read_only=True, many=True)
-
-    def get_relation_cult_agent(self, obj):
-        relations = obj.relationcultagent_set.all().order_by('agent_alternative')
-        return AgentRelationSerializer(relations, read_only=True, many=True).data
 
     class Meta:
         model = Cult
-        exclude = ['notes']
+        exclude = ['notes']  # noqa: RUF012
+        list_serializer_class = CultListSerializer
 
 
 class CultAgentRelationSerializer(serializers.ModelSerializer):
@@ -371,7 +447,8 @@ class CultAgentRelationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RelationCultAgent
-        fields = ['cult', 'agent_uncertainty', 'agent_main', 'agent_alternative']
+        fields = ('cult', 'agent_uncertainty', 'agent_main',
+                  'agent_alternative')
 
 
 class RelationOtherCultSerializer(serializers.ModelSerializer):
@@ -380,7 +457,7 @@ class RelationOtherCultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RelationOtherAgent
-        fields = ['cult', 'agent_uncertainty', 'role']
+        fields = ('cult', 'agent_uncertainty', 'role')
 
 
 class RelationOtherPlaceCultSerializer(serializers.ModelSerializer):
@@ -389,7 +466,7 @@ class RelationOtherPlaceCultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RelationOtherPlace
-        fields = ['cult', 'place_uncertainty', 'role']
+        fields = ('cult', 'place_uncertainty', 'role')
 
 
 class QuoteSourceSerializer(serializers.ModelSerializer):
@@ -397,9 +474,9 @@ class QuoteSourceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quote
-        fields = ['id', 'comment', 'not_after', 'not_before', 'date_note',
+        fields = ('id', 'comment', 'not_after', 'not_before', 'date_note',
                   'page', 'language', 'uri', 'quote_transcription',
-                  'transcribed_by', 'translation', 'translated_by', 'cult']
+                  'transcribed_by', 'translation', 'translated_by', 'cult')
 
 
 class SourceSerializer(serializers.ModelSerializer):
@@ -407,7 +484,7 @@ class SourceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Source
-        exclude = ['notes', 'created', 'modified', 'updated']
+        exclude = ('notes', 'created', 'modified', 'updated')
 
 
 class QuoteSerializer(serializers.ModelSerializer):
@@ -416,27 +493,29 @@ class QuoteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quote
-        fields = ['id', 'source', 'cult', 'comment', 'not_after', 'not_before',
+        fields = ('id', 'source', 'cult', 'comment', 'not_after', 'not_before',
                   'date_note', 'page', 'language', 'uri', 'quote_transcription',
-                  'transcribed_by', 'translation', 'translated_by']
+                  'transcribed_by', 'translation', 'translated_by')
 
 
 class AgentSerializer(serializers.ModelSerializer):
     created = UserSerializer(read_only=True)
     modified = UserSerializer(read_only=True)
     agent_type = AgentTypeSerializer(read_only=True, many=True)
-    feast_day = FeastDaySerializer(read_only=True, many=True, source='feastday_set')
-    held_office = RelationOfficeSerializer(read_only=True, many=True, source='relationoffice_set')
-    agent_names = serializers.SerializerMethodField()
-    relation_cult_agent = CultAgentRelationSerializer(read_only=True, many=True, source='relationcultagent_set')
-    relation_other_agent = RelationOtherCultSerializer(read_only=True, many=True, source='relationotheragent_set')
-
-    def get_agent_names(self, obj):
-        return obj.agentname_set.values('name', 'language', 'not_before')
+    feast_day = FeastDaySerializer(read_only=True, many=True,
+                                   source='feastday_set')
+    held_office = RelationOfficeSerializer(read_only=True, many=True,
+                                           source='relationoffice_set')
+    agent_names = AgentNameDisplaySerializer(source='agentname_set',
+                                             many=True, read_only=True)
+    relation_cult_agent = CultAgentRelationSerializer(read_only=True,
+                                                      many=True, source='relationcultagent_set')
+    relation_other_agent = RelationOtherCultSerializer(read_only=True,
+                                                       many=True, source='relationotheragent_set')
 
     class Meta:
         model = Agent
-        exclude = ['notes']
+        exclude = ['notes']  # noqa: RUF012
 
 
 class PlaceChildrenSerializer(serializers.ModelSerializer):
@@ -445,23 +524,39 @@ class PlaceChildrenSerializer(serializers.ModelSerializer):
     relation_cult_place = serializers.SerializerMethodField()
     relation_other_place = serializers.SerializerMethodField()
 
-    def get_relation_cult_place(obj, self):
-        if self.parent.place_type.parent.id in [3, 4, 5, 7, 10, 11]:
-            relations = self.relation_cult_place.all()
-        else:
-            relations = None
-        return CultMiniPlaceSerializer(relations, read_only=True, many=True).data
+    def is_church_related(self, obj):
+        if not obj.parent:
+            return False
 
-    def get_relation_other_place(obj, self):
-        if self.parent.place_type.parent.id in [3, 4, 5, 7, 10, 11]:
-            relations = self.relation_other_place.all()
-        else:
-            relations = None
-        return CultMiniPlaceSerializer(relations, read_only=True, many=True).data
+        if not obj.parent.place_type:
+            return False
+
+        if not obj.parent.place_type.parent:
+            return False
+
+        return obj.parent.place_type.parent.id in [3, 4, 5, 7, 10, 11]
+
+    def get_relation_cult_place(self, obj):
+        if self.is_church_related(obj):
+            relations = obj.relation_cult_place.all()
+            return CultMiniPlaceSerializer(
+                relations, read_only=True, many=True
+            ).data
+
+        return []
+
+    def get_relation_other_place(self, obj):
+        if self.is_church_related(obj):
+            relations = obj.relation_other_place.all()
+            return CultMiniPlaceSerializer(
+                relations, read_only=True, many=True
+            ).data
+
+        return []
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'relation_cult_place', 'relation_other_place']
+        fields = ('id', 'name', 'relation_cult_place', 'relation_other_place')
 
 
 class PlaceSerializer(serializers.ModelSerializer):
@@ -472,15 +567,14 @@ class PlaceSerializer(serializers.ModelSerializer):
     parent = PlaceMiniSerializer(read_only=True)
     quote = QuoteMiniSerializer(read_only=True, many=True)
     relation_cult_place = CultMiniPlaceSerializer(read_only=True, many=True)
-    relation_other_place = RelationOtherPlaceCultSerializer(read_only=True, many=True, source='relationotherplace_set')
-    place_names = serializers.SerializerMethodField()
-
-    def get_place_names(self, obj):
-        return obj.placename_set.all().values('name', 'language', 'not_before')
+    relation_other_place = RelationOtherPlaceCultSerializer(
+        read_only=True, many=True, source='relationotherplace_set')
+    place_names = PlaceNameDisplaySerializer(source='placename_set', many=True,
+                                             read_only=True)
 
     class Meta:
         model = Place
-        exclude = ['notes']
+        exclude = ['notes']  # noqa: RUF012
 
 
 class CultMapSerializer(PlaceMapSerializer):
@@ -500,7 +594,8 @@ class CultMapSerializer(PlaceMapSerializer):
                 minyear = int(years[0])
                 maxyear = int(years[1])
                 ids = ids.filter(minyear__lte=maxyear, maxyear__gte=minyear)
-            ids = ids.values('id', 'cult_type', 'cult_type__parent', 'cult_type__parent__parent')
+            ids = ids.values('id', 'cult_type', 'cult_type__parent',
+                             'cult_type__parent__parent')
             for type in types:
                 res[type] = 0
             for id in ids:
@@ -520,7 +615,8 @@ class CultMapSerializer(PlaceMapSerializer):
                 years = range.split(',')
                 minyear = int(years[0])
                 maxyear = int(years[1])
-                ids = obj.relation_cult_place.filter(minyear__lte=maxyear, maxyear__gte=minyear).values('id', 'cult_type')
+                ids = obj.relation_cult_place.filter(minyear__lte=maxyear,
+                                                     maxyear__gte=minyear).values('id', 'cult_type')
             else:
                 ids = obj.relation_cult_place.all().values('id', 'cult_type')
             for id in ids:
@@ -533,7 +629,7 @@ class CultMapSerializer(PlaceMapSerializer):
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
+        fields = ('id', 'name', 'place_type', 'ids', 'geometry')
         geo_field = 'geometry'
 
 
@@ -545,21 +641,29 @@ class AdvancedCultMapSerializer(PlaceMapSerializer):
         type = self.context['request'].query_params.get('type')
         agent_type = self.context['request'].query_params.get('agent_type')
         agent = self.context['request'].query_params.get('agent')
-        ids_rel = obj.relation_cult_place.only("cult_type", "relation_cult_agent", "relationotheragent_set")
-        ids_other = obj.relation_other_place.only("cult_type", "relation_cult_agent", "relationotheragent_set")
+        ids_rel = obj.relation_cult_place.only("cult_type",
+                                               "relation_cult_agent",
+                                               "relationotheragent_set")
+        ids_other = obj.relation_other_place.only("cult_type",
+                                                  "relation_cult_agent",
+                                                  "relationotheragent_set")
         if type is not None and type != '':
             types = type.split(',')
-            ids_rel = ids_rel.prefetch_related('cult_type', 'cult_type__parent', 'cult_type__parent__parent').filter(Q(cult_type__in=types)
+            ids_rel = ids_rel.prefetch_related('cult_type',
+                                               'cult_type__parent',
+                                               'cult_type__parent__parent').filter(Q(cult_type__in=types)
                                      | Q(cult_type__parent__in=types)
                                      | Q(cult_type__parent__parent__in=types)).distinct()
-            ids_other = ids_other.prefetch_related('cult_type', 'cult_type__parent', 'cult_type__parent__parent').filter(Q(cult_type__in=types)
+            ids_other = ids_other.prefetch_related('cult_type',
+                                                   'cult_type__parent',
+                                                   'cult_type__parent__parent').filter(Q(cult_type__in=types)
                                          | Q(cult_type__parent__in=types)
                                          | Q(cult_type__parent__parent__in=types)).distinct()
         if agent_type is not None and agent_type != '':
             agent_types = agent_type.split(',')
             ids_rel = ids_rel.prefetch_related('relation_cult_agent__agent_type',
-                                               'relationotheragent_set__agent__agent_type').filter(Q(relation_cult_agent__agent_type__in=agent_types)
-                                                                                                   | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
+             'relationotheragent_set__agent__agent_type').filter(Q(relation_cult_agent__agent_type__in=agent_types)
+             | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
             ids_other = ids_other.prefetch_related('relation_cult_agent__agent_type',
                                                'relationotheragent_set__agent__agent_type').filter(Q(relation_cult_agent__agent_type__in=agent_types)
                                          | Q(relationotheragent__agent__agent_type__in=agent_types)).distinct()
@@ -584,7 +688,7 @@ class AdvancedCultMapSerializer(PlaceMapSerializer):
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
+        fields = ('id', 'name', 'place_type', 'ids', 'geometry')
         geo_field = 'geometry'
 
 
@@ -602,7 +706,7 @@ class SaintsMapSerializer(PlaceMapSerializer):
             agents = agent.split(',')
             ids = obj.relation_cult_place.filter(relationcultagent__agent_id__in=agents).values('relationcultagent__agent_id')
         else:
-            ids = obj.relation_cult_place.all().values('relationcultagent__agent__agent_type')        
+            ids = obj.relation_cult_place.all().values('relationcultagent__agent__agent_type')
         for id in ids:
             if agent is not None:
                 agent_id = id['relationcultagent__agent_id']
@@ -616,7 +720,7 @@ class SaintsMapSerializer(PlaceMapSerializer):
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
+        fields = ('id', 'name', 'place_type', 'ids', 'geometry')
         geo_field = 'geometry'
 
 
@@ -648,5 +752,5 @@ class PeopleMapSerializer(PlaceMapSerializer):
 
     class Meta:
         model = Place
-        fields = ['id', 'name', 'place_type', 'ids', 'geometry']
+        fields = ('id', 'name', 'place_type', 'ids', 'geometry')
         geo_field = 'geometry'

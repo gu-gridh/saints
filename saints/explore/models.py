@@ -227,8 +227,11 @@ class RelationOtherPlace(models.Model):
 class Organization(EntityMixin, NotesMixin, DatesMixin):
     name = models.CharField(max_length=255, help_text="Name in English")
     wikidata = models.URLField(blank=True)
-    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True)
-    organization_type = models.ForeignKey(OrganizationType, on_delete=models.RESTRICT, null=True, blank=True)
+    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True,
+                               blank=True)
+    organization_type = models.ForeignKey(OrganizationType,
+                                          on_delete=models.RESTRICT, null=True,
+                                          blank=True)
 
     def __str__(self):
         if not self.organization_type:
@@ -247,7 +250,8 @@ class Agent(EntityMixin, NotesMixin):
     agent_type = models.ManyToManyField(AgentType, blank=True, limit_choices_to={"level": "Type of Agent"})
     gender = models.CharField(max_length=10, null=True, blank=True, choices=GENDER_TYPES)
     held_office = models.ManyToManyField(Organization, through=RelationOffice)
-    not_before = models.CharField(max_length=21, blank=True, verbose_name="Attested dates")
+    not_before = models.CharField(max_length=21, blank=True,
+                                  verbose_name="Attested dates")
     attributes = models.TextField(blank=True)
     uri = models.URLField(blank=True)
     iconclass = models.CharField(max_length=255, blank=True)
@@ -366,7 +370,8 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return "|".join(filter(None, [self.place.name, self.cult_type.name]))
+        return "|".join(filter(None, [self.place.name if self.place_id
+                                      else None, self.cult_type.name]))
 
     class Meta:
         verbose_name = "Cult Manifestation"
@@ -376,12 +381,17 @@ class Cult(EntityMixin, NotesMixin, DatesMixin):
 class Parish(EntityMixin, NotesMixin, DatesMixin):
     name = models.CharField(max_length=255, help_text="Name in English")
     snid_4 = models.PositiveSmallIntegerField(default=0)
-    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True)
-    origin = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="origin_parish")
+    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True,
+                               blank=True)
+    origin = models.ForeignKey("self", on_delete=models.SET_NULL, null=True,
+                               blank=True, related_name="origin_parish")
     organization = models.ForeignKey(Organization, on_delete=models.RESTRICT,
-                                     null=True, blank=True, related_name="parish_organization")
-    medival_organization = models.ForeignKey(Organization, on_delete=models.RESTRICT,
-                                             null=True, blank=True, related_name="medival_organization")
+                                     null=True, blank=True,
+                                     related_name="parish_organization")
+    medival_organization = models.ForeignKey(Organization,
+                                             on_delete=models.RESTRICT,
+                                             null=True, blank=True,
+                                             related_name="medival_organization")
     wikidata = models.URLField(blank=True)
 
     class Meta:
@@ -476,6 +486,14 @@ class Iconographic(DatesMixin):
     saints = models.CharField(max_length=255, blank=True, null=True)
     place = models.ForeignKey(Place, on_delete=models.RESTRICT, null=True)
     parish = models.ForeignKey(Parish, on_delete=models.RESTRICT, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=['card', 'volume'],
+                name='icon_card_volume_idx'
+            ),
+        ]
 
     def __str__(self):
         return "|".join(filter(None, [self.church, self.motif2]))

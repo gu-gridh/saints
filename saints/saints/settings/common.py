@@ -169,6 +169,8 @@ CKEDITOR_CONFIGS = {
     }
 }
 
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
 # wagtail settings
 WAGTAIL_SITE_NAME = 'Mapping Saints'
 WAGTAILDOCS_EXTENSIONS = ['csv', 'pdf', 'jpeg', 'png']

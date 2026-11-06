@@ -32,33 +32,68 @@ class OrderingMixin(viewsets.ReadOnlyModelViewSet):
     ordering = ['name']
 
 
-# Create your views here.
-# ViewSets define the view behavior.
 class AgentsViewSet(OrderingMixin):
     def get_queryset(self):
         options = self.request.query_params
         gender = options.get('gender')
         agent_type = options.get('type')
         operator = options.get('op')
-        mini = options.get('mini')        
-        queryset = models.Agent.objects.all().prefetch_related("agent_type").order_by('name')
-        if mini is None:
-            queryset = queryset.prefetch_related("agentname_set", "relationcultagent_set__cult__cult_type", "relationcultagent_set__cult__place", "feastday_set")
-            queryset = queryset.select_related("created", "modified")
-            queryset = queryset.prefetch_related("relationoffice_set__organization", "relationoffice_set__role")
-            queryset = queryset.prefetch_related("relationotheragent_set__role", "relationotheragent_set__cult__cult_type", "relationotheragent_set__cult__place", "relationotheragent_set__cult__relationcultagent_set")
+        mini = options.get('mini')
+        queryset = models.Agent.objects.all()
+
         if gender is not None and gender != '' and gender != 'all':
-            queryset = queryset.filter(gender=gender).order_by('name')
+            queryset = queryset.filter(gender=gender)
+
         if agent_type is not None:
             types = agent_type.split(',')
             if operator == "AND" and len(types) < 5:
                 for t in types:
-                    if queryset:
-                        queryset = queryset.filter(agent_type=t)
-                queryset = queryset.order_by('name')
+                    queryset = queryset.filter(agent_type=t)
             else:
-                queryset = queryset.filter(agent_type__in=types).order_by('name')
-        return queryset.distinct()
+                queryset = queryset.filter(agent_type__in=types)
+
+        queryset = queryset.prefetch_related("agent_type")
+
+        if mini is None:
+            queryset = queryset.select_related(
+                "created",
+                "modified",
+            ).prefetch_related(
+                "agentname_set",
+                "feastday_set",
+                Prefetch(
+                    "relationcultagent_set",
+                    queryset=models.RelationCultAgent.objects
+                    .select_related(
+                        "cult",
+                        "cult__cult_type",
+                        "cult__place",
+                    )
+                ),
+                Prefetch(
+                    "relationoffice_set",
+                    queryset=models.RelationOffice.objects
+                    .select_related(
+                        "organization",
+                        "role",
+                    )
+                ),
+                Prefetch(
+                    "relationotheragent_set",
+                    queryset=models.RelationOtherAgent.objects
+                    .select_related(
+                        "role",
+                        "cult",
+                        "cult__cult_type",
+                        "cult__place",
+                    )
+                    .prefetch_related(
+                        "cult__relationcultagent_set"
+                    )
+                ),
+            )
+
+        return queryset.order_by("name").distinct()
 
     def get_serializer_class(self):
         mini = self.request.query_params.get('mini')
@@ -107,16 +142,16 @@ class DiocesesViewSet(OrderingMixin):
 
     def get_queryset(self):
         type = self.request.query_params.get('type')
-        # only show those with connected cults. TODO: different for places
+        # only show those with connected cults
         if type is not None:
             if type == "Modern":
                 existing = models.Cult.objects.prefetch_related("place__parish").values("place__parish__organization_id").distinct()
                 queryset = models.Organization.objects.filter(organization_type=9, id__in=existing).order_by('name')
             else:
                 existing_meds = models.Cult.objects.prefetch_related("place__parish").values("place__parish__medival_organization_id").distinct()
-                queryset = models.Organization.objects.filter(organization_type=2, id__in=existing_meds).order_by('name')
+                queryset = models.Organization.objects.filter(organization_type=2, id__in=existing_meds).exclude(id__in=[7, 12, 13, 15, 43, 94]).order_by('name')
         else:
-            queryset = models.Organization.objects.filter(organization_type__in=[2,9]).order_by('name')
+            queryset = models.Organization.objects.filter(organization_type__in=[2, 9]).exclude(id__in=[7, 12, 13, 15, 43, 94]).order_by('name')
         return queryset
 
     serializer_class = OrganizationMiniSerializer
@@ -126,6 +161,7 @@ class DiocesesViewSet(OrderingMixin):
 class CultsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         options = self.request.query_params
+
         cult_type = options.get('type')
         uncertainty = options.get('uncertainty')
         extant = options.get('extant')
@@ -134,14 +170,12 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
         range = options.get('range')
         med_diocese = options.get('med_diocese')
         mini = options.get('mini')
-        queryset = models.Cult.objects.select_related("cult_type", "cult_type__parent", "place", "created", "modified").all()
-        queryset = queryset.prefetch_related("relationcultagent_set__agent")
-        if mini is None:
-            queryset = queryset.prefetch_related("place__parish__medival_organization", "place__place_type", "cult_children", "quote", "associated", "relationotheragent_set__agent")
+
+        queryset = models.Cult.objects.all()
         if med_diocese is not None and med_diocese != '':
-            if mini is not None:
-                queryset = queryset.prefetch_related("place__parish")
-            queryset = queryset.filter(place__parish__medival_organization_id=med_diocese)
+            queryset = queryset.filter(
+                place__parish__medival_organization_id=med_diocese
+                )
         if uncertainty is not None:
             queryset = queryset.filter(place_uncertainty=uncertainty)
         if extant is not None:
@@ -150,15 +184,95 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(quote__source_id=source)
         if feastday is not None and feastday == 'true':
             search = options.get('search')
-            queryset = queryset.filter(feast_day__icontains=search)
+            if search:
+                queryset = queryset.filter(feast_day__icontains=search)
         if range is not None and range != '':
             years = range.split(',')
             minyear = int(years[0])
             maxyear = int(years[1])
-            queryset = queryset.filter(minyear__lte=maxyear, maxyear__gte=minyear)
+            queryset = queryset.filter(minyear__lte=maxyear,
+                                       maxyear__gte=minyear)
         if cult_type is not None:
             types = cult_type.split(',')
-            queryset = queryset.filter(Q(cult_type__in=types) | Q(cult_type__parent__in=types) | Q(cult_type__parent__parent__in=types))
+            queryset = queryset.filter(
+                Q(cult_type__in=types)
+                | Q(cult_type__parent__in=types)
+                | Q(cult_type__parent__parent__in=types))
+
+        mini_cult_queryset = (
+            models.Cult.objects.select_related(
+                'place', 'cult_type', 'cult_type__parent'
+                ).prefetch_related(
+                Prefetch(
+                    'relationcultagent_set',
+                    queryset=models.RelationCultAgent.objects
+                    .select_related('agent')
+                )
+            )
+        )
+
+        queryset = queryset.select_related(
+            'cult_type', 'cult_type__parent', 'place'
+        )
+
+        if mini is None:
+            queryset = queryset.select_related(
+                'created',
+                'modified',
+                'parent',
+                'parent__place',
+                'parent__cult_type',
+            )
+
+            queryset = queryset.prefetch_related(
+                'place__parish__medival_organization',
+                'place__place_type',
+                'quote',
+
+                Prefetch(
+                    'parent__relationcultagent_set',
+                    queryset=models.RelationCultAgent.objects
+                    .select_related('agent')
+                ),
+                Prefetch(
+                    'associated',
+                    queryset=mini_cult_queryset,
+                ),
+                Prefetch(
+                    'cult_children',
+                    queryset=mini_cult_queryset,
+                ),
+                Prefetch(
+                    'relationotheragent_set',
+                    queryset=models.RelationOtherAgent.objects.select_related(
+                        'agent', 'role'
+                    )
+                ),
+                'relationotherplace_set',
+                'relationdigitalresource_set',
+                'relationmbresource_set',
+                'relation_iconographic',
+
+                Prefetch(
+                    'relationcultagent_set',
+                    queryset=models.RelationCultAgent.objects
+                    .select_related('agent')
+                    .order_by('agent_alternative')
+                ),
+            )
+        else:
+            queryset = queryset.prefetch_related(
+                Prefetch('relationcultagent_set',
+                         queryset=models.RelationCultAgent.objects
+                         .select_related('agent')
+                         )
+            )
+
+            if med_diocese:
+                queryset = queryset.prefetch_related(
+                    'place__parish'
+                )
+
         return queryset.order_by('place__name')
 
     def get_serializer_class(self):
@@ -176,7 +290,9 @@ class CultsViewSet(viewsets.ReadOnlyModelViewSet):
 
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     pagination_class = property(fget=get_pagination_class)
-    search_fields = ['place__name', 'cult_type__name', 'relation_cult_agent__name', 'relationotheragent__agent__name', 'feast_day']
+    search_fields = ['place__name', 'cult_type__name',
+                     'relation_cult_agent__name',
+                     'relationotheragent__agent__name', 'feast_day']
     ordering_fields = ['place__name', 'cult_type__name']
     ordering = ['place__name']
 
